@@ -14,6 +14,7 @@ interface QuadraticVoteType {
   vote: (id: number, vote: number) => void;
   credits: number;
   availableCredits: number;
+  reset: () => void;
 }
 
 export const QuadraticVote = createContext<QuadraticVoteType>(null!);
@@ -76,14 +77,23 @@ const QuadraticVoteProvider = ({
     }
   };
 
+  const reset = () => {
+    setQuestions(questions.map(question => ({
+      ...question,
+      vote: 0,
+      isDisabledDown: false,
+      isDisabledUp: false
+    })));
+  };
+
   return (
     <QuadraticVote.Provider
       value={{
         credits,
         availableCredits,
         questions,
-
         vote,
+        reset,
       }}
     >
       {children}
