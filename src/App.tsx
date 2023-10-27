@@ -49,7 +49,7 @@ function App() {
 }
 
 function Container() {
-  const { questions, vote } = useQuadraticVote();
+  const { questions, vote, reset } = useQuadraticVote();
 
   return (
     <div style={{ display: "flex", position: "relative" }}>
@@ -63,6 +63,14 @@ function Container() {
         }}
       >
         <QuadraticVote.Pool circleColor="orange" creditColor="gray" />
+        <div>
+              <button
+                style={{ marginRight: 10 }}
+                onClick={reset}
+              >
+                Reset
+              </button>
+        </div>
       </div>
 
       <div id="container">
