@@ -78,12 +78,14 @@ const QuadraticVoteProvider = ({
   };
 
   const reset = () => {
-    setQuestions(questions.map(question => ({
-      ...question,
-      vote: 0,
-      isDisabledDown: false,
-      isDisabledUp: false
-    })));
+    setQuestions(
+      questions.map((question) => ({
+        ...question,
+        vote: 0,
+        isDisabledDown: false,
+        isDisabledUp: false,
+      }))
+    );
   };
 
   return (
@@ -92,8 +94,8 @@ const QuadraticVoteProvider = ({
         credits,
         availableCredits,
         questions,
-        vote,
         reset,
+        vote,
       }}
     >
       {children}
