@@ -21,7 +21,6 @@ const QuadraticVote = {
   Provider,
   Pool,
   Diamond,
-  Animation,
 };
 
 export default QuadraticVote;

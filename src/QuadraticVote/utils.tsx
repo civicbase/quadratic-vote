@@ -45,7 +45,7 @@ export const createDiamond = (
   radius: number = 4
 ): ReactElement[] => {
   const circles: ReactElement[] = [];
-  const maxLevel = Math.sqrt(credits);
+  const maxLevel = Math.abs(Math.sqrt(credits));
 
   for (let level: number = 1; level <= maxLevel; level++) {
     let cx: number = -radius * 4 * level;
