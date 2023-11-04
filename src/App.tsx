@@ -64,12 +64,9 @@ function Container() {
       >
         <QuadraticVote.Pool circleColor="orange" creditColor="gray" />
         <div>
-              <button
-                style={{ marginRight: 10 }}
-                onClick={reset}
-              >
-                Reset
-              </button>
+          <button style={{ marginRight: 10 }} onClick={reset}>
+            Reset
+          </button>
         </div>
       </div>
 
