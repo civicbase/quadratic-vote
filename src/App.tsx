@@ -35,7 +35,7 @@ function App() {
     },
     {
       question:
-        "Do you agree with the proposed tax policy changes aimed at reducing income pamonha?",
+        "Do you agree with the proposed tax policy changes aimed at reducing income something?",
       vote: 0,
       id: 5,
     },

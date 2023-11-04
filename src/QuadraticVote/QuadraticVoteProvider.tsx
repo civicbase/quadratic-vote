@@ -56,19 +56,6 @@ const QuadraticVoteProvider = ({
     return simulatedCost <= credits;
   };
 
-  const reset = () => {
-    setQuestions(
-      questions.map((q) => {
-        return {
-          ...q,
-          vote: 0,
-          isDisabledUp: false,
-          isDisabledDown: false,
-        };
-      })
-    );
-  };
-
   const vote = (id: number, voteAmount: number) => {
     if (canVote(questions, id, voteAmount)) {
       const updatedQuestions = questions.map((q) => {
