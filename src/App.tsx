@@ -35,7 +35,7 @@ function App() {
     },
     {
       question:
-        "Do you agree with the proposed tax policy changes aimed at reducing income inequality?",
+        "Do you agree with the proposed tax policy changes aimed at reducing income pamonha?",
       vote: 0,
       id: 5,
     },
@@ -64,12 +64,9 @@ function Container() {
       >
         <QuadraticVote.Pool circleColor="orange" creditColor="gray" />
         <div>
-              <button
-                style={{ marginRight: 10 }}
-                onClick={reset}
-              >
-                Reset
-              </button>
+          <button style={{ marginRight: 10 }} onClick={reset}>
+            Reset
+          </button>
         </div>
       </div>
 
