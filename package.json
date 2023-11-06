@@ -1,11 +1,41 @@
 {
   "name": "quadratic-vote",
-  "author": {
-    "name": "Civicbase"
-  },
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.0-development",
+  "private": false,
   "type": "module",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "description": "A React component library for implementing interactive and customizable quadratic voting systems in web applications, enabling nuanced preference expression in polls and surveys.",
+  "main": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/civicbase/quadratic-vote.git"
+  },
+  "keywords": [
+    "quadratic",
+    "vote",
+    "QVSR"
+  ],
+  "author": "Alan Mortoni mortoni.alan@hotmail.com",
+  "contributors": [
+    "Mauro Mortoni mmortoni@hotmail.com",
+    "João Henrique Rodrigues sktjoao@gmail.com"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/civicbase/quadratic-vote/issues"
+  },
+  "homepage": "https://github.com/civicbase/quadratic-vote#readme",
   "scripts": {
     "start": "vite",
     "build": "tsc && vite build",
@@ -13,7 +43,8 @@
     "preview": "vite preview",
     "coverage": "vitest run --coverage",
     "test": "vitest",
-    "test:ui": "vitest --ui --coverage.enabled=true"
+    "test:ui": "vitest --ui --coverage.enabled=true",
+    "semantic-release": "semantic-release"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -38,9 +69,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
     "jsdom": "^22.1.0",
-    "prettier": "^3.0.3",
-    "typescript": "^5.2.2",
-    "vite": "^4.4.5",
-    "vitest": "^0.34.6"
+    "semantic-release": "^22.0.7",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5"
   }
 }
