@@ -55,7 +55,7 @@ describe("<QuadraticVoteProvider/>", () => {
     it('resets votes correctly', () => {
         const AVAILABLE_CREDITS = CREDITS - (questions.length * (2 ** 2))
 
-        const newQuestions = questions.map((q, i) => {
+        const newQuestions = questions.map((q) => {
             return {
                 ...q,
                 vote: 2
@@ -124,8 +124,6 @@ describe("<QuadraticVoteProvider/>", () => {
                 result.current.vote(i, VOTE_AMOUNT)
             })
         }
-
-        console.log('result', result.current.availableCredits, result.current.credits, result.current.questions)
 
         expect(result.current.availableCredits).toBe(ZERO)
 

@@ -1,39 +1,3 @@
-// /// <reference types="vitest" />
-// /// <reference types="vite/client" />
-
-// import react from '@vitejs/plugin-react'
-// import { defineConfig } from 'vite'
-
-// // https://vitejs.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-//   test: {
-//     globals: true,
-//     environment: 'jsdom',
-//     setupFiles: './src/test/setup.ts',
-//     // you might want to disable it, if you don't have tests that rely on CSS
-//     // since parsing CSS is slow
-//     css: true,
-//     coverage: {
-//       reporter: ['text', 'html'],
-//       exclude: [
-//         'node_modules/',
-//         './tests/vitest.setup.ts',
-//         'build/**/*',
-//         'deploy/**/*',
-//         '.storybook/**/*',
-//         'public/**/*',
-//         'src/**/index.ts',
-//       ],
-//       all: true,
-//       lines: 80,
-//       functions: 80,
-//       branches: 80,
-//       statements: 80,
-//     },
-//   },
-// })
-
 /// <reference types="vitest" />
 /// <reference types="vite/client" />
 
@@ -69,6 +33,11 @@ export default defineConfig({
         '.storybook/**/*',
         'public/**/*',
         'src/**/index.ts',
+        '.eslintrc.cjs',
+        '.eslintrc.js',
+        '.prettierrc.js',
+        'index.ts',
+        'src/vite-env.d.ts'
       ],
       all: true,
       lines: 80,

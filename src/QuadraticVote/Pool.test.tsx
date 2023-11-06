@@ -35,9 +35,7 @@ describe("Pool Component", () => {
 
         const credits = 100
 
-        const { container, debug } = render(<CustomComponent credits={credits} reverse={undefined} circleColor={undefined} creditColor={undefined} />);
-
-        debug()
+        const { container } = render(<CustomComponent credits={credits} reverse={undefined} circleColor={undefined} creditColor={undefined} />);
 
         expect(container.querySelectorAll('circle')).toHaveLength(100);
     })

@@ -78,18 +78,6 @@ export const questionsWithVotes: Question[] = [
     },
 ];
 
-// const {container, debug} = render(
-//     <QuadraticVote.Provider credits={credits} questions={questions}>
-//       <QuadraticVote.Diamond id={id} />
-//     </QuadraticVote.Provider>
-//   );
-
-
-// const customRender = (
-//     ui: ReactElement,
-//     options?: Omit<RenderOptions, 'wrapper'>,
-// ) => render(ui, {wrapper: AllTheProviders, ...options })
-
 export * from '@testing-library/react';
-// export { customRender as render };
+
 
