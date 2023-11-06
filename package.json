@@ -15,7 +15,7 @@
       "last 1 safari version"
     ]
   },
-  "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
+  "description": "A React component library for implementing interactive and customizable quadratic voting systems in web applications, enabling nuanced preference expression in polls and surveys.",
   "main": "index.ts",
   "repository": {
     "type": "git",
@@ -26,7 +26,11 @@
     "vote",
     "QVSR"
   ],
-  "author": "Civicbase",
+  "author": "Alan Mortoni mortoni.alan@hotmail.com",
+  "contributors": [
+    "Mauro Mortoni mmortoni@hotmail.com",
+    "João Henrique Rodrigues sktjoao@gmail.com"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/civicbase/quadratic-vote/issues"
