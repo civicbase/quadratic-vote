@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useState, useEffect } from "react";
+import { ReactNode, createContext, useEffect, useState } from "react";
 
 export type Question = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +37,16 @@ const QuadraticVoteProvider = ({
       credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
     );
   }, [questions, credits]);
+
+  useEffect(() => {
+    if (credits < 4) {
+      throw new Error('Credits must be greater than 4')
+    }
+
+    if (credits > 225) {
+      throw new Error('Credits must be less than 226')
+    }
+  }, [credits])
 
   const canVote = (
     questions: Question[],
