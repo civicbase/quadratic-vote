@@ -1,28 +1,13 @@
-import { useContext } from "react";
-import Provider, {
-  QuadraticVote as QuadraticVoteContext,
-} from "./QuadraticVoteProvider";
-import Pool from "./Pool";
-import Diamond from "./Diamond";
-
-export const useQuadraticVote = () => {
-  const context = useContext(QuadraticVoteContext);
-
-  if (!context) {
-    throw new Error(
-      `useQuadraticVote must be called inside a <QuadraticVote.Provider>`
-    );
-  }
-
-  return context;
-};
+import Provider from './QuadraticVoteProvider'
+import Pool from './Pool'
+import Diamond from './Diamond'
 
 const QuadraticVote = {
   Provider,
   Pool,
   Diamond,
-};
+}
 
-export default QuadraticVote;
-
-export type { Question } from "./QuadraticVoteProvider";
+export type { Question } from './QuadraticVoteProvider'
+export { default as useQuadraticVote } from './useQuadraticVote'
+export default QuadraticVote
