@@ -1,29 +1,25 @@
 /// <reference types="vitest" />
 /// <reference types="vite/client" />
 
-import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-
+import { resolve } from 'path'
+import { defineConfig } from 'vite'
+import dts from 'vite-plugin-dts'
 
 export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 3000,
-  },
-  define: {
-    global: {},
-  },
-  optimizeDeps: {
-    exclude: ['js-big-decimal'],
-  },
   build: {
-    outDir: 'build',
+    lib: {
+      entry: resolve(__dirname, 'src/index.ts'),
+      name: 'quadratic-vote',
+      fileName: 'quadratic-vote',
+    },
   },
+  plugins: [dts()],
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     coverage: {
+      provider: 'v8',
       reporter: ['text', 'html'],
       exclude: [
         'node_modules/',
@@ -36,8 +32,8 @@ export default defineConfig({
         '.eslintrc.cjs',
         '.eslintrc.js',
         '.prettierrc.js',
-        'index.ts',
-        'src/vite-env.d.ts'
+        'main.ts',
+        'src/vite-env.d.ts',
       ],
       all: true,
       lines: 80,
@@ -45,15 +41,6 @@ export default defineConfig({
       branches: 80,
       statements: 80,
     },
-    exclude: [
-      './.storybook/**/*',
-      'src/test/**/*',
-      'node_modules/**/*',
-      'build/**/*',
-    ],
+    exclude: ['node_modules/**/*', 'dist/**/*'],
   },
-});
-
-
-
-
+})
