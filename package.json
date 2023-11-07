@@ -3,6 +3,18 @@
   "version": "0.0.0-development",
   "private": false,
   "type": "module",
+  "main": "./dist/quadratic-vote.umd.cjs",
+  "module": "./dist/quadratic-vote.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/quadratic-vote.js",
+      "require": "./dist/quadratic-vote.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "browserslist": {
     "production": [
       ">0.2%",
@@ -16,7 +28,6 @@
     ]
   },
   "description": "A React component library for implementing interactive and customizable quadratic voting systems in web applications, enabling nuanced preference expression in polls and surveys.",
-  "main": "index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/civicbase/quadratic-vote.git"
@@ -53,6 +64,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.0.0",
+    "@types/node": "^20.8.10",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
@@ -71,6 +83,7 @@
     "jsdom": "^22.1.0",
     "semantic-release": "^22.0.7",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "vite-plugin-dts": "^3.6.3"
   }
 }
