@@ -1,9 +1,10 @@
+import React from 'react';
 import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import QuadraticVote from '.';
-import { questions } from '../test/test-utils';
+import QuadraticVote from '../QuadraticVote';
+import { questions } from './test-utils';
 
 describe("Diamond Component", () => {
   const neutralColor = "#A9A9A9";
