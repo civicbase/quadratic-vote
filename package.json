@@ -1,6 +1,6 @@
 {
   "name": "quadratic-vote",
-  "version": "0.0.0-development",
+  "version": "1.2.0",
   "private": false,
   "type": "module",
   "main": "./dist/quadratic-vote.umd.cjs",
