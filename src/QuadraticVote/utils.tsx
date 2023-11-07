@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import React, { ReactElement } from "react";
 
 export const setViewBox = (circles: ReactElement[]) => {
   let minX = Infinity,

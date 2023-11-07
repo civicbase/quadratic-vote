@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useQuadraticVote } from ".";
 import { setViewBox } from "./utils";
 
