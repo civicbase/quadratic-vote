@@ -1,11 +1,9 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "types": ["vite/client", "node"],
     "allowJs": false,
-    "skipLibCheck": true,
-    "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,13 +12,20 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
-    "baseUrl": "./",
-    "paths": {
-      "~/*": ["src/*"]
-    }
+    "jsx": "react-jsx",
+    "declaration": true,
+    "skipLibCheck": true,
+     "esModuleInterop": true ,
+     "declarationMap": true,
+    "baseUrl": ".",
+     "paths": {
+      "quadratic-vote": [ "src/QuadraticVote/index.ts" ]
+    },
+    "typeRoots": [
+      "node_modules/@types",
+      "src/QuadraticVote/index.d.ts"
+    ]
   },
-  "include": ["./src", "./jest-setup.ts"],
-  "exclude": ["node_modules"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
