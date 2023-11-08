@@ -17,7 +17,7 @@ export default defineConfig({
       fileName: (format) => `quadratic-vote.${format}.js`,
     },
     rollupOptions: {
-      external: [...Object.keys(packageJson.dependencies)],
+      external: [...Object.keys(packageJson.peerDependencies)],
     },
   },
   plugins: [
