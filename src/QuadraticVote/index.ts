@@ -2,7 +2,7 @@ import Provider from './QuadraticVoteProvider'
 import Pool from './Pool'
 import Diamond from './Diamond'
 
-export const QuadraticVote = {
+export default {
   Provider,
   Pool,
   Diamond,
