@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { render } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 
-import { QuadraticVote } from '../QuadraticVote'
+import QuadraticVote from '../QuadraticVote'
 import { questions } from './test-utils'
 
 describe('Pool Component', () => {

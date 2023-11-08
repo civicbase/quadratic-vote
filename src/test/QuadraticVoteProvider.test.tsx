@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { act, render, renderHook } from '@testing-library/react'
-import React from 'react'
-import { ReactElement } from 'react'
+import React, { ReactElement } from 'react'
 import { useQuadraticVote } from '../QuadraticVote'
 import { questions } from './test-utils'
 import QuadraticVoteProvider from '../QuadraticVote/QuadraticVoteProvider'
