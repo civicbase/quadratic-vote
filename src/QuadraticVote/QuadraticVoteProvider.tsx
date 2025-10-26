@@ -1,4 +1,5 @@
 import React, { ReactNode, createContext, useEffect, useState } from 'react'
+import VoteAnimation, { LaunchAnimationPayload } from './VoteAnimation'
 export type Question = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any
@@ -32,9 +33,9 @@ const QuadraticVoteProvider = ({
   const [availableCredits, setAvailableCredits] = useState(credits)
 
   useEffect(() => {
-    setAvailableCredits(
-      credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0),
-    )
+    const nextAvailable =
+      credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
+    setAvailableCredits(nextAvailable)
   }, [questions, credits])
 
   useEffect(() => {
@@ -67,6 +68,8 @@ const QuadraticVoteProvider = ({
 
   const vote = (id: number, voteAmount: number) => {
     if (canVote(questions, id, voteAmount)) {
+      const prevQuestion = questions.find((q) => q.id === id)
+      const prevAbs = Math.abs(prevQuestion?.vote ?? 0)
       const updatedQuestions = questions.map((q) => {
         if (q.id === id) {
           return { ...q, vote: q.vote + voteAmount }
@@ -82,7 +85,47 @@ const QuadraticVoteProvider = ({
         }
       })
 
+      // compute used credits before and after
+      const prevUsed = questions.reduce((acc, q) => acc + q.vote ** 2, 0)
+      const nextUsed = newQuestions.reduce((acc, q) => acc + q.vote ** 2, 0)
+
       setQuestions(newQuestions)
+
+      // launch animation for increases or decreases
+      const delta = nextUsed - prevUsed
+      const nextQuestion = newQuestions.find((q) => q.id === id)
+      const nextAbs = Math.abs(nextQuestion?.vote ?? 0)
+      if (delta > 0 && nextAbs > prevAbs) {
+        // to diamond: newly added level nextAbs
+        const event = new CustomEvent<LaunchAnimationPayload>(
+          'qv:launch-animation',
+          {
+            detail: {
+              direction: 'toDiamond',
+              poolStartIndex: prevUsed,
+              diamondId: id,
+              diamondLevel: nextAbs,
+              count: delta,
+            },
+          },
+        )
+        window.dispatchEvent(event)
+      } else if (delta < 0 && nextAbs < prevAbs) {
+        // to pool: removed level prevAbs
+        const event = new CustomEvent<LaunchAnimationPayload>(
+          'qv:launch-animation',
+          {
+            detail: {
+              direction: 'toPool',
+              poolStartIndex: nextUsed,
+              diamondId: id,
+              diamondLevel: prevAbs,
+              count: Math.abs(delta),
+            },
+          },
+        )
+        window.dispatchEvent(event)
+      }
     }
   }
 
@@ -108,6 +151,7 @@ const QuadraticVoteProvider = ({
       }}
     >
       {children}
+      <VoteAnimation />
     </QuadraticVote.Provider>
   )
 }

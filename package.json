@@ -38,10 +38,6 @@
     "QVSR"
   ],
   "author": "Alan Mortoni mortoni.alan@hotmail.com",
-  "contributors": [
-    "Mauro Mortoni mmortoni@hotmail.com",
-    "João Henrique Rodrigues sktjoao@gmail.com"
-  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/civicbase/quadratic-vote/issues"
@@ -55,7 +51,8 @@
     "coverage": "vitest run --coverage",
     "test": "vitest",
     "test:ui": "vitest --ui --coverage.enabled=true",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "dev": "vite demo"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",
