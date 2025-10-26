@@ -49,13 +49,10 @@ function Container() {
                 onClick={() => vote(q.id, 1)}
                 disabled={q.isDisabledUp}
               >
-                yes fuck
+                Vote Yes
               </button>
-              <button
-                onClick={() => vote(q.id, -1)}
-                disabled={q.isDisabledDown}
-              >
-                no
+              <button onClick={() => vote(q.id, -1)} disabled={q.isDisabledDown}>
+                Vote No
               </button>
             </div>
           </div>
@@ -79,14 +76,13 @@ function App() {
       id: 1,
     },
     {
-      question:
-        'Should the government allocate more funding to improve public schools?',
+      question: 'Should the government allocate more funding to improve public schools?',
       vote: 0,
       id: 2,
     },
     {
       question:
-        'o you believe stricter environmental regulations are necessary to combat climate change?',
+        'Do you believe stricter environmental regulations are necessary to combat climate change?',
       vote: 0,
       id: 3,
     },
@@ -98,7 +94,7 @@ function App() {
     },
     {
       question:
-        'Do you agree with the proposed tax policy changes aimed at reducing income something?',
+        'Do you agree with the proposed tax policy changes aimed at reducing income inequality?',
       vote: 0,
       id: 5,
     },

@@ -2,15 +2,39 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuadraticVote } from '.'
 import { setViewBox } from './utils'
 
-interface PoolProps {
+/**
+ * Props for the Pool component
+ */
+export interface PoolProps {
+  /** Number of columns in the pool grid @default 5 */
   columns?: number
+  /** Radius of each credit circle in pixels @default 4 */
   circleRadius?: number
+  /** Spacing between circles in pixels @default 4 */
   circleSpacing?: number
+  /** Reverse the fill direction (fill from bottom instead of top) @default false */
   reverse?: boolean
+  /** Color of used/allocated credits @default 'black' */
   creditColor?: string
+  /** Color of available/unused credits @default 'grey' */
   circleColor?: string
 }
 
+/**
+ * Pool component displays the credit allocation pool with smooth animations.
+ *
+ * Shows available and used credits as circles in a grid layout.
+ * Credits animate out when allocated to questions and return when deallocated.
+ *
+ * @example
+ * ```tsx
+ * <QuadraticVote.Pool
+ *   columns={5}
+ *   creditColor='#3B82F6'
+ *   circleColor='#D1D5DB'
+ * />
+ * ```
+ */
 function Pool({
   columns = 5,
   circleRadius = 4,
@@ -82,9 +106,7 @@ function Pool({
       const cx = column * (circleRadius * 2 + circleSpacing) + circleRadius
       const cy = row * (circleRadius * 2 + circleSpacing) + circleRadius
 
-      const isUsedCredit = reverse
-        ? i >= credits - usedCredits
-        : i < usedCredits
+      const isUsedCredit = reverse ? i >= credits - usedCredits : i < usedCredits
       let fillColor = isUsedCredit ? creditColor : circleColor
       if (arriving.has(i)) fillColor = creditColor
       if (departing.has(i)) fillColor = creditColor

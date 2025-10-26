@@ -6,17 +6,26 @@
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/mui/material-ui/blob/HEAD/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/civicbase/quadratic-vote/blob/main/LICENSE)
 [![npm latest package](https://img.shields.io/npm/v/quadratic-vote/latest.svg)](https://www.npmjs.com/package/quadratic-vote)
 [![npm downloads](https://img.shields.io/npm/dm/quadratic-vote.svg)](https://www.npmjs.com/package/quadratic-vote)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/quadratic-vote)](https://bundlephobia.com/package/quadratic-vote)
 
 </div>
 
-**Quadratic-Vote** is a React component library for implementing quadratic voting in web applications. Quadratic voting is a voting system where participants allocate votes to express the intensity of their preferences, rather than just the direction.
+**Quadratic-Vote** is a modern React component library for implementing quadratic voting in web applications with smooth animations. Quadratic voting allows participants to allocate votes to express the intensity of their preferences, with the cost increasing quadratically (1 vote = 1 credit, 2 votes = 4 credits, 3 votes = 9 credits, etc.).
 
-## Installation
+## ✨ Features
 
-To install Quadratic-Vote, run the following command in your project directory:
+- 🎨 **Fully Customizable** - Colors, sizes, and layouts
+- 🎬 **Smooth Animations** - Credit circles fly from pool to diamonds with React Portal
+- 📱 **Responsive** - Works on all screen sizes
+- 🎯 **TypeScript** - Full type safety and IntelliSense support
+- ♿ **Accessible** - Semantic HTML and ARIA labels
+- 🎭 **Zero Dependencies** - Only requires React and React DOM
+- ⚡ **Lightweight** - Minimal bundle size impact
+
+## 📦 Installation
 
 ```bash
 npm install quadratic-vote
@@ -28,76 +37,256 @@ or
 yarn add quadratic-vote
 ```
 
-## Example
+or
 
-For a live demonstration and code examples, check out our interactive example on CodeSandbox:
-
-**[Quadratic-Vote Example on CodeSandbox](https://codesandbox.io/s/quadratic-vote-nyk9nx)**
-
-This example showcases a typical implementation of the Quadratic-Vote component in a React application. It includes various questions and demonstrates the voting mechanism along with UI components such as the voting pool and diamond-shaped indicators.
-
-Feel free to experiment with the code in the sandbox to get a better understanding of how to integrate and customize Quadratic-Vote in your own projects.
-
-## Usage
-
-### Importing
-
-```js
-import QuadraticVote, { Question, useQuadraticVote } from "quadratic-vote";
+```bash
+pnpm add quadratic-vote
 ```
 
-### Setting Up Your Component
+## 🚀 Quick Start
 
-Here is an example of how to set up a basic voting component using QuadraticVote:
+### Usage Option 1: Namespace Pattern (Recommended)
 
-```js
-function Container() {
-  const { questions, vote, reset } = useQuadraticVote();
+```tsx
+import QuadraticVote, { Question, useQuadraticVote } from 'quadratic-vote'
 
-  // ... (component implementation)
+function VotingInterface() {
+  const { questions, vote, reset } = useQuadraticVote()
+
+  return (
+    <div style={{ display: 'flex', gap: '2rem' }}>
+      {/* Credit Pool */}
+      <QuadraticVote.Pool creditColor='#D1D5DB' circleColor='#3B82F6' />
+
+      {/* Questions */}
+      {questions.map((q) => (
+        <div key={q.id}>
+          <p>{q.question}</p>
+          <QuadraticVote.Diamond
+            id={q.id}
+            neutralColor='#9CA3AF'
+            positiveColor='#22C55E'
+            negativeColor='#EF4444'
+          />
+          <button onClick={() => vote(q.id, 1)} disabled={q.isDisabledUp}>
+            Vote Yes
+          </button>
+          <button onClick={() => vote(q.id, -1)} disabled={q.isDisabledDown}>
+            Vote No
+          </button>
+        </div>
+      ))}
+
+      <button onClick={reset}>Reset</button>
+    </div>
+  )
 }
 
 function App() {
-  const questions = [
-    // ... (list of questions)
-  ];
+  const questions: Question[] = [
+    { question: 'Should we implement feature X?', vote: 0, id: 0 },
+    { question: 'Should we prioritize performance?', vote: 0, id: 1 },
+  ]
 
   return (
     <QuadraticVote.Provider credits={100} questions={questions}>
-      <Container />
+      <VotingInterface />
     </QuadraticVote.Provider>
-  );
+  )
+}
+```
+
+### Usage Option 2: Named Exports
+
+```tsx
+import {
+  QuadraticVoteProvider,
+  Pool,
+  Diamond,
+  useQuadraticVote,
+  type Question,
+} from 'quadratic-vote'
+
+function VotingInterface() {
+  const { questions, vote, reset } = useQuadraticVote()
+
+  return (
+    <div style={{ display: 'flex', gap: '2rem' }}>
+      <Pool creditColor='#D1D5DB' circleColor='#3B82F6' />
+
+      {questions.map((q) => (
+        <div key={q.id}>
+          <p>{q.question}</p>
+          <Diamond
+            id={q.id}
+            neutralColor='#9CA3AF'
+            positiveColor='#22C55E'
+            negativeColor='#EF4444'
+          />
+          <button onClick={() => vote(q.id, 1)} disabled={q.isDisabledUp}>
+            Vote Yes
+          </button>
+        </div>
+      ))}
+    </div>
+  )
 }
 
-export default App;
+function App() {
+  const questions: Question[] = [{ question: 'Should we implement feature X?', vote: 0, id: 0 }]
+
+  return (
+    <QuadraticVoteProvider credits={100} questions={questions}>
+      <VotingInterface />
+    </QuadraticVoteProvider>
+  )
+}
 ```
 
-### Defining Questions
+## 📚 API Reference
 
-Define your questions in the following format:
+### `<QuadraticVote.Provider>`
 
-```js
-const questions: Question[] = [
-  {
-    question: "Your question here?", // this is additional and not required. Can be accessed under <QuadraticVote.Provider>
-    vote: 0,
-    id: 0,
-    // ... additional properties,
-  },
-  // ... more questions
-];
+The context provider that wraps your voting interface.
+
+| Prop        | Type         | Required | Description                                  |
+| ----------- | ------------ | -------- | -------------------------------------------- |
+| `credits`   | `number`     | ✅       | Total voting credits (must be between 4-225) |
+| `questions` | `Question[]` | ✅       | Array of questions to vote on                |
+| `children`  | `ReactNode`  | ✅       | Your voting interface components             |
+
+### `<QuadraticVote.Pool>`
+
+Displays the credit pool showing available and used credits with animated transitions.
+
+| Prop            | Type      | Default   | Description                        |
+| --------------- | --------- | --------- | ---------------------------------- |
+| `columns`       | `number`  | `5`       | Number of columns in the pool grid |
+| `circleRadius`  | `number`  | `4`       | Radius of each credit circle       |
+| `circleSpacing` | `number`  | `4`       | Spacing between circles            |
+| `reverse`       | `boolean` | `false`   | Reverse the fill direction         |
+| `creditColor`   | `string`  | `'black'` | Color of used credits              |
+| `circleColor`   | `string`  | `'grey'`  | Color of available credits         |
+
+### `<QuadraticVote.Diamond>`
+
+Displays a diamond-shaped vote indicator for a question.
+
+| Prop            | Type     | Default     | Description                                     |
+| --------------- | -------- | ----------- | ----------------------------------------------- |
+| `id`            | `number` | ✅ Required | Question ID (must match a question in Provider) |
+| `neutralColor`  | `string` | `'#A9A9A9'` | Color when no vote is cast                      |
+| `positiveColor` | `string` | `'#00FF00'` | Color for positive votes                        |
+| `negativeColor` | `string` | `'#FF0000'` | Color for negative votes                        |
+| `circleRadius`  | `number` | `4`         | Radius of diamond circles                       |
+
+### `useQuadraticVote()` Hook
+
+Access voting state and actions.
+
+```tsx
+const {
+  questions, // Current question state with vote counts
+  credits, // Total credits
+  availableCredits, // Remaining credits
+  vote, // Function to cast a vote: (id: number, amount: number) => void
+  reset, // Function to reset all votes: () => void
+} = useQuadraticVote()
 ```
 
-### Component Structure
+### `Question` Type
 
-The Container function demonstrates a typical setup. You can customize styles and layout as needed.
+```tsx
+interface Question {
+  id: number
+  vote: number
+  isDisabledUp?: boolean
+  isDisabledDown?: boolean
+  [key: string]: any // Additional custom properties
+}
+```
 
-### Voting and Resetting
+## 🎨 Customization Examples
 
-Use the vote function to handle vote submissions and the reset function to reset votes.
+### Custom Colors
 
-### Customization
+```tsx
+<QuadraticVote.Pool
+  creditColor='#EF4444'    // Red for used credits
+  circleColor='#10B981'    // Green for available
+/>
 
-You can customize the appearance and behavior of the voting components. For example, you can change the colors of the voting pool, diamonds, and buttons.
+<QuadraticVote.Diamond
+  id={0}
+  neutralColor='#6B7280'   // Gray neutral
+  positiveColor='#3B82F6'  // Blue positive
+  negativeColor='#F59E0B'  // Amber negative
+/>
+```
 
-Example: https://codesandbox.io/s/quadratic-vote-nyk9nx
+### Larger Pool
+
+```tsx
+<QuadraticVote.Pool columns={10} circleRadius={6} circleSpacing={6} />
+```
+
+## 🎬 Animation System
+
+The library includes a sophisticated animation system using React Portals:
+
+- Credits smoothly fly from the pool to diamonds when voting up
+- Credits return from diamonds to the pool when voting down
+- Animations track scroll position and adapt in real-time
+- Color transitions are synchronized with flight animations
+- Staggered animations for multiple credits create a flowing effect
+
+The animation overlay is automatically managed by the `Provider` component.
+
+## 🧪 Testing
+
+The library includes comprehensive test coverage with Vitest and React Testing Library.
+
+```bash
+npm test              # Run tests
+npm run test:ui       # Run tests with UI
+npm run coverage      # Generate coverage report
+```
+
+## 🏗️ Building
+
+```bash
+npm run build         # Build for production
+npm run dev           # Run demo app
+```
+
+## 📖 Examples
+
+- **[Live Demo on CodeSandbox](https://codesandbox.io/s/quadratic-vote-nyk9nx)** - Interactive example
+- See `/demo` directory for a complete implementation
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting a PR.
+
+## 📄 License
+
+MIT © [Civicbase](https://github.com/civicbase)
+
+## 🔗 Links
+
+- [NPM Package](https://www.npmjs.com/package/quadratic-vote)
+- [GitHub Repository](https://github.com/civicbase/quadratic-vote)
+- [Issue Tracker](https://github.com/civicbase/quadratic-vote/issues)
+- [Quadratic Voting Explained](https://en.wikipedia.org/wiki/Quadratic_voting)
+
+## 💡 About Quadratic Voting
+
+Quadratic voting is a collective decision-making procedure where participants express not just their preferences, but the intensity of those preferences. The cost of additional votes increases quadratically:
+
+- 1 vote = 1 credit
+- 2 votes = 4 credits
+- 3 votes = 9 credits
+- 4 votes = 16 credits
+- etc.
+
+This mechanism prevents tyranny of the majority while allowing those who care more about specific issues to have proportionally more influence on those particular decisions.

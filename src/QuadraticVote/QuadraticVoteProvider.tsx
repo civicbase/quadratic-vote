@@ -1,24 +1,62 @@
 import React, { ReactNode, createContext, useEffect, useState } from 'react'
 import VoteAnimation, { LaunchAnimationPayload } from './VoteAnimation'
+
+/**
+ * Question object representing a votable item
+ */
 export type Question = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any
+  /** Current vote count (positive or negative) */
   vote: number
+  /** Unique identifier for the question */
   id: number
+  /** Whether voting up is disabled (auto-calculated) */
   isDisabledUp?: boolean
+  /** Whether voting down is disabled (auto-calculated) */
   isDisabledDown?: boolean
 }
 
+/**
+ * Context value provided by QuadraticVoteProvider
+ */
 export interface QuadraticVoteType {
+  /** Array of questions with their current vote state */
   questions: Question[]
+  /** Function to cast a vote on a question */
   vote: (id: number, vote: number) => void
+  /** Total available credits for allocation */
   credits: number
+  /** Remaining unallocated credits */
   availableCredits: number
+  /** Function to reset all votes to zero */
   reset: () => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const QuadraticVote = createContext<QuadraticVoteType>(null!)
 
+/**
+ * QuadraticVoteProvider is the context provider that manages voting state.
+ *
+ * Wraps your voting interface and provides state management for quadratic voting.
+ * Handles credit allocation, vote validation, and smooth animations.
+ *
+ * @param credits - Total voting credits (must be between 4-225)
+ * @param questions - Array of questions to vote on
+ * @param children - Your voting interface components
+ *
+ * @example
+ * ```tsx
+ * const questions = [
+ *   { question: 'Should we...?', vote: 0, id: 0 }
+ * ]
+ *
+ * <QuadraticVote.Provider credits={100} questions={questions}>
+ *   <YourVotingUI />
+ * </QuadraticVote.Provider>
+ * ```
+ */
 const QuadraticVoteProvider = ({
   children,
   credits,
@@ -33,8 +71,7 @@ const QuadraticVoteProvider = ({
   const [availableCredits, setAvailableCredits] = useState(credits)
 
   useEffect(() => {
-    const nextAvailable =
-      credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
+    const nextAvailable = credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
     setAvailableCredits(nextAvailable)
   }, [questions, credits])
 
@@ -48,11 +85,7 @@ const QuadraticVoteProvider = ({
     }
   }, [credits])
 
-  const canVote = (
-    questions: Question[],
-    id: number,
-    potentialVote: number,
-  ) => {
+  const canVote = (questions: Question[], id: number, potentialVote: number) => {
     let simulatedCost = 0
 
     questions.forEach((q) => {
@@ -97,33 +130,27 @@ const QuadraticVoteProvider = ({
       const nextAbs = Math.abs(nextQuestion?.vote ?? 0)
       if (delta > 0 && nextAbs > prevAbs) {
         // to diamond: newly added level nextAbs
-        const event = new CustomEvent<LaunchAnimationPayload>(
-          'qv:launch-animation',
-          {
-            detail: {
-              direction: 'toDiamond',
-              poolStartIndex: prevUsed,
-              diamondId: id,
-              diamondLevel: nextAbs,
-              count: delta,
-            },
+        const event = new CustomEvent<LaunchAnimationPayload>('qv:launch-animation', {
+          detail: {
+            direction: 'toDiamond',
+            poolStartIndex: prevUsed,
+            diamondId: id,
+            diamondLevel: nextAbs,
+            count: delta,
           },
-        )
+        })
         window.dispatchEvent(event)
       } else if (delta < 0 && nextAbs < prevAbs) {
         // to pool: removed level prevAbs
-        const event = new CustomEvent<LaunchAnimationPayload>(
-          'qv:launch-animation',
-          {
-            detail: {
-              direction: 'toPool',
-              poolStartIndex: nextUsed,
-              diamondId: id,
-              diamondLevel: prevAbs,
-              count: Math.abs(delta),
-            },
+        const event = new CustomEvent<LaunchAnimationPayload>('qv:launch-animation', {
+          detail: {
+            direction: 'toPool',
+            poolStartIndex: nextUsed,
+            diamondId: id,
+            diamondLevel: prevAbs,
+            count: Math.abs(delta),
           },
-        )
+        })
         window.dispatchEvent(event)
       }
     }

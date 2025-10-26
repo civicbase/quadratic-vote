@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/civicbase/quadratic-vote/discussions
+    about: Ask questions and discuss with the community
+  - name: 📚 Documentation
+    url: https://github.com/civicbase/quadratic-vote#readme
+    about: Read the documentation
+  - name: 🔍 CodeSandbox Example
+    url: https://codesandbox.io/s/quadratic-vote-nyk9nx
+    about: View the interactive example
+

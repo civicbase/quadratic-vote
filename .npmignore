@@ -1,8 +1,46 @@
+# Development files
 .github
 .vscode
-public
+.editorconfig
 src
-*.ts
-.eslintrc.js
-.prettierrc.js
+demo
+coverage
+
+# Config files
+*.config.*
+.eslintrc.*
+.prettierrc.*
 .release
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+
+# Documentation (include in package)
+# README.md - included
+# LICENSE - included
+# CHANGELOG.md - included
+
+# CI/CD
+.github
+
+# Test files
+**/*.test.*
+**/*.spec.*
+**/test/**
+**/tests/**
+__tests__
+__mocks__
+
+# Build artifacts not needed
+*.tsbuildinfo
+.turbo
+
+# Lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Misc
+*.log
+.DS_Store
+node_modules

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { act, render, renderHook } from '@testing-library/react'
-import React, { ReactElement } from 'react'
+import React, { ReactNode } from 'react'
 import { useQuadraticVote } from '../QuadraticVote'
 import { questions } from './test-utils'
 import QuadraticVoteProvider from '../QuadraticVote/QuadraticVoteProvider'
@@ -10,7 +10,7 @@ describe('<QuadraticVoteProvider/>', () => {
   const CREDITS: number = 100
   const ZERO = 0
 
-  const wrapper = ({ children }: { children: ReactElement }) => (
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QuadraticVoteProvider credits={CREDITS} questions={questions}>
       {children}
     </QuadraticVoteProvider>
@@ -31,7 +31,7 @@ describe('<QuadraticVoteProvider/>', () => {
   })
 
   describe('handle erros', () => {
-    let originalConsoleError: any
+    let originalConsoleError: typeof console.error
 
     beforeEach(() => {
       // Store the original console.error
@@ -62,10 +62,7 @@ describe('<QuadraticVoteProvider/>', () => {
 
       expect(() => {
         render(
-          <QuadraticVoteProvider
-            credits={GREATER_THAN_225}
-            questions={questions}
-          >
+          <QuadraticVoteProvider credits={GREATER_THAN_225} questions={questions}>
             <div>Child component</div>
           </QuadraticVoteProvider>,
         )
@@ -83,7 +80,7 @@ describe('<QuadraticVoteProvider/>', () => {
       }
     })
 
-    const customWrapper = ({ children }: { children: ReactElement }) => (
+    const customWrapper = ({ children }: { children: ReactNode }) => (
       <QuadraticVoteProvider credits={CREDITS} questions={newQuestions}>
         {children}
       </QuadraticVoteProvider>
@@ -181,12 +178,8 @@ describe('<QuadraticVoteProvider/>', () => {
     for (let i = 0; i < result.current.questions.length; i++) {
       if (i == QUESTION_INDEX) {
         expect(result.current.questions[QUESTION_INDEX].vote).toBe(VOTE_AMOUNT)
-        expect(
-          result.current.questions[QUESTION_INDEX].isDisabledUp,
-        ).toBeTruthy()
-        expect(
-          result.current.questions[QUESTION_INDEX].isDisabledDown,
-        ).not.toBeTruthy()
+        expect(result.current.questions[QUESTION_INDEX].isDisabledUp).toBeTruthy()
+        expect(result.current.questions[QUESTION_INDEX].isDisabledDown).not.toBeTruthy()
       } else {
         expect(result.current.questions[i].vote).toBe(ZERO)
         expect(result.current.questions[i].isDisabledUp).toBeTruthy()
