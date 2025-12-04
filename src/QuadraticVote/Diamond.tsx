@@ -113,85 +113,42 @@ const Diamond: React.FC<DiamondProps> = ({
     ? question.vote > 0
       ? positiveColor
       : question.vote < 0
-      ? negativeColor
-      : neutralColor
+        ? negativeColor
+        : neutralColor
     : neutralColor
 
   const viewBox = useMemo(() => setViewBox(circles), [circles])
 
   return (
-    <>
-      <style>
-        {`
-          @keyframes folioShine {
-            0% {
-              transform: translateX(200%) skewX(-45deg);
-              opacity: 1;
-            }
-            100% {
-              transform: translateX(-100%) skewX(-45deg);
-              opacity: 0;
-            }
+    <svg
+      data-diamond-id={id}
+      viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+      width={viewBox.width}
+      height={viewBox.height}
+    >
+      <g>
+        {circles.map((circle) => {
+          const circleLevel = parseInt(circle.props['data-level'].split('-')[1])
+          const circleAi = parseInt(circle.props['data-ai'])
+          let fillColor = circleLevel <= voteLevel ? voteColor : neutralColor
+          const circleKey = `${circleLevel}-${circleAi}`
+
+          if (arriving.has(circleKey)) {
+            fillColor = neutralColor
           }
-          .shine-wrapper {
-            position: relative;
-            overflow: visible;
-            display: inline-block;
+
+          if (departing.has(circleKey)) {
+            fillColor = voteColor
           }
-          .shine-effect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-              90deg, 
-              transparent, 
-              rgba(255, 255, 255, 0.4), 
-              transparent
-            );
-            pointer-events: none;
-            animation: none;
-            opacity: 0;
-          }
-          .shine-effect.active {
-            animation: folioShine 1s ease-in-out forwards;
-          }
-        `}
-      </style>
-      <div className='shine-wrapper'>
-        <svg
-          data-diamond-id={id}
-          viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-          width={viewBox.width}
-          height={viewBox.height}
-        >
-          <g>
-            {circles.map((circle) => {
-              const circleLevel = parseInt(circle.props['data-level'].split('-')[1])
-              const circleAi = parseInt(circle.props['data-ai'])
-              let fillColor = circleLevel <= voteLevel ? voteColor : neutralColor
-              const circleKey = `${circleLevel}-${circleAi}`
-              // Defer coloring when arriving until animation ends
-              if (arriving.has(circleKey)) {
-                fillColor = neutralColor
-              }
-              // Hold color during departure until animation ends
-              if (departing.has(circleKey)) {
-                fillColor = voteColor
-              }
-              return cloneElement(circle, {
-                style: {
-                  fill: fillColor,
-                  transition: 'fill 0.35s ease-out',
-                },
-              })
-            })}
-          </g>
-        </svg>
-        <div className={`shine-effect ${voteLevel === 0 ? 'active' : ''}`} />
-      </div>
-    </>
+          return cloneElement(circle, {
+            style: {
+              fill: fillColor,
+              transition: 'fill 0.35s ease-out',
+            },
+          })
+        })}
+      </g>
+    </svg>
   )
 }
 
