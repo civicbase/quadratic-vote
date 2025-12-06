@@ -7,7 +7,7 @@ import { createDiamond, setViewBox } from './utils'
  */
 export interface DiamondProps {
   /** Unique identifier matching a question in the Provider (required) */
-  id: number
+  id: string | number
   /** Color when no vote is cast @default '#A9A9A9' */
   neutralColor?: string
   /** Color for positive votes @default '#00FF00' */
@@ -52,7 +52,7 @@ const Diamond: React.FC<DiamondProps> = ({
       const ce = e as CustomEvent<{
         phase: 'start' | 'end'
         direction: 'toDiamond' | 'toPool'
-        diamondId: number
+        diamondId: string | number
         diamondLevel: number
         ai: number
         poolIndex: number
@@ -71,7 +71,7 @@ const Diamond: React.FC<DiamondProps> = ({
       const ce = e as CustomEvent<{
         phase: 'end'
         direction: 'toDiamond' | 'toPool'
-        diamondId: number
+        diamondId: string | number
         diamondLevel: number
         ai: number
       }>
@@ -121,7 +121,7 @@ const Diamond: React.FC<DiamondProps> = ({
 
   return (
     <svg
-      data-diamond-id={id}
+      data-diamond-id={String(id)}
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
       width={viewBox.width}
       height={viewBox.height}

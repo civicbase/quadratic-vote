@@ -40,7 +40,7 @@ export const setViewBox = (circles: ReactElement[]) => {
 };
 
 export const createDiamond = (
-  id: number,
+  id: string | number,
   credits: number,
   radius: number = 4
 ): ReactElement[] => {
@@ -59,7 +59,7 @@ export const createDiamond = (
           r={radius}
           cx={cx}
           cy={cy}
-          data-level={`${id}-${level}`}
+          data-level={`${String(id)}-${level}`}
           data-ai={ai}
         />
       );

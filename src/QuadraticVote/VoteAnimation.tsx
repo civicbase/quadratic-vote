@@ -7,7 +7,7 @@ export type LaunchAnimationPayload =
       // starting pool circle index to animate from
       poolStartIndex: number
       // destination diamond id
-      diamondId: number
+      diamondId: string | number
       // diamond level to target (1-based)
       diamondLevel: number
       // number of credits (circles) to animate
@@ -19,7 +19,7 @@ export type LaunchAnimationPayload =
       // starting pool circle index to animate to
       poolStartIndex: number
       // source diamond id
-      diamondId: number
+      diamondId: string | number
       // diamond level to animate from (1-based)
       diamondLevel: number
       // number of credits (circles) to animate
@@ -31,7 +31,7 @@ type Flight = {
   id: number
   direction: 'toDiamond' | 'toPool'
   poolIndex: number
-  diamond: { id: number; level: number; ai: number }
+  diamond: { id: string | number; level: number; ai: number }
   color: string
   startAt: number
   durationMs: number
@@ -50,13 +50,13 @@ function getCircleScreenRect(circle: SVGCircleElement) {
 }
 
 function getDiamondLevelCircles(
-  diamondId: number,
+  diamondId: string | number,
   level: number,
 ): SVGCircleElement[] {
-  const svg = document.querySelector(`svg[data-diamond-id="${diamondId}"]`)
+  const svg = document.querySelector(`svg[data-diamond-id="${String(diamondId)}"]`)
   if (!svg) return []
   const nodeList = (svg as SVGSVGElement).querySelectorAll(
-    `circle[data-level="${diamondId}-${level}"]`,
+    `circle[data-level="${String(diamondId)}-${level}"]`,
   )
   const arr = Array.from(nodeList) as SVGCircleElement[]
   // sort by data-ai asc to make deterministic order
@@ -290,7 +290,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
         `pool-${f.poolIndex}`,
       ) as SVGCircleElement | null
       const diamondEl = document.querySelector(
-        `svg[data-diamond-id="${f.diamond.id}"] circle[data-level="${f.diamond.id}-${f.diamond.level}"][data-ai="${f.diamond.ai}"]`,
+        `svg[data-diamond-id="${String(f.diamond.id)}"] circle[data-level="${String(f.diamond.id)}-${f.diamond.level}"][data-ai="${f.diamond.ai}"]`,
       ) as SVGCircleElement | null
 
       let fromRect: { x: number; y: number; r: number }

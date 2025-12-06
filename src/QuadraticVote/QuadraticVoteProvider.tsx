@@ -10,7 +10,7 @@ export type Question = {
   /** Current vote count (positive or negative) */
   vote: number
   /** Unique identifier for the question */
-  id: number
+  id: string | number
   /** Whether voting up is disabled (auto-calculated) */
   isDisabledUp?: boolean
   /** Whether voting down is disabled (auto-calculated) */
@@ -24,7 +24,7 @@ export interface QuadraticVoteType {
   /** Array of questions with their current vote state */
   questions: Question[]
   /** Function to cast a vote on a question */
-  vote: (id: number, vote: number) => void
+  vote: (id: string | number, vote: number) => void
   /** Total available credits for allocation */
   credits: number
   /** Remaining unallocated credits */
@@ -85,7 +85,7 @@ const QuadraticVoteProvider = ({
     }
   }, [credits])
 
-  const canVote = (questions: Question[], id: number, potentialVote: number) => {
+  const canVote = (questions: Question[], id: string | number, potentialVote: number) => {
     let simulatedCost = 0
 
     questions.forEach((q) => {
@@ -99,7 +99,7 @@ const QuadraticVoteProvider = ({
     return simulatedCost <= credits
   }
 
-  const vote = (id: number, voteAmount: number) => {
+  const vote = (id: string | number, voteAmount: number) => {
     if (canVote(questions, id, voteAmount)) {
       const prevQuestion = questions.find((q) => q.id === id)
       const prevAbs = Math.abs(prevQuestion?.vote ?? 0)
