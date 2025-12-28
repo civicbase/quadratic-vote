@@ -17,6 +17,11 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -58,12 +63,20 @@ jobs:
           # Ensure npm doesn't read any token-based config accidentally.
           echo "" > "$RUNNER_TEMP/empty.npmrc"
 
+      - name: Debug OIDC availability
+        run: |
+          echo "node: $(node -v)"
+          echo "npm:  $(npm -v)"
+          echo "registry: $(npm config get registry)"
+          node -e "console.log('ACTIONS_ID_TOKEN_REQUEST_URL set:', !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL); console.log('ACTIONS_ID_TOKEN_REQUEST_TOKEN set:', !!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN)"
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
           # Force npm to use a clean config file (no always-auth, no tokens).
           NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/empty.npmrc
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
           NODE_AUTH_TOKEN: ""
           NPM_TOKEN: ""
         run: npx semantic-release
