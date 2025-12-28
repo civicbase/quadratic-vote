@@ -31,6 +31,12 @@
 npm install quadratic-vote
 ```
 
+If you use `<QuadraticVote.LiquidPool />`, you also need:
+
+```bash
+npm install framer-motion
+```
+
 or
 
 ```bash
@@ -167,6 +173,35 @@ Displays the credit pool showing available and used credits with animated transi
 | `reverse`       | `boolean` | `false`   | Reverse the fill direction         |
 | `creditColor`   | `string`  | `'black'` | Color of used credits              |
 | `circleColor`   | `string`  | `'grey'`  | Color of available credits         |
+
+### `<QuadraticVote.LiquidPool>`
+
+Compact alternative to `<Pool>` designed for mobile: a gooey “liquid loader” style pool (based on the referenced CodePen), plus a single pool anchor so credits always exit/return from the same spot.
+
+```tsx
+<QuadraticVote.LiquidPool
+  shape='circle'
+  size={140}
+  inkColor='#fff'
+  backgroundColor='#000'
+/>
+```
+
+| Prop              | Type                   | Default                 | Description                                         |
+| ----------------- | ---------------------- | ----------------------- | --------------------------------------------------- |
+| `shape`           | `'circle' \| 'rect'`    | `'circle'`              | Pool container shape                                 |
+| `size`            | `number`               | `84`                    | Circle diameter (px)                                 |
+| `width`           | `number`               | `120`                   | Rect width (px)                                      |
+| `height`          | `number`               | `140`                   | Rect height (px)                                     |
+| `backgroundColor` | `string`               | `'grey'`                | Empty/background color                               |
+| `inkColor`        | `string`               | `'#fff'`                | Blob/droplet color                                   |
+| `blurPx`          | `number`               | `8`                     | Blur amount in px                                    |
+| `contrast`        | `number`               | `18`                    | Contrast multiplier                                  |
+| `burstCount`      | `number`               | `4`                     | Droplets emitted on each credit transfer event       |
+| `dryOutMs`        | `number`               | `0`                     | Dry-out duration before switching to blank (ms)      |
+| `coreScaleMode`   | `'available' \| 'used'` | `'available'`          | Which credits drive the center blob size             |
+| `coreScaleMin`    | `number`               | `0.6`                   | Min center blob scale                                |
+| `coreScaleMax`    | `number`               | `1`                     | Max center blob scale                                |
 
 ### `<QuadraticVote.Diamond>`
 

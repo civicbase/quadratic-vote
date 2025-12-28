@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import QuadraticVote, { Question, useQuadraticVote } from '../src/QuadraticVote'
 
 function Container() {
   const { questions, vote, reset } = useQuadraticVote()
+  const [poolTab, setPoolTab] = useState<'grid' | 'liquid'>('grid')
+  const [liquidShape, setLiquidShape] = useState<'circle' | 'rect'>('circle')
 
   return (
     <div style={{ display: 'flex', position: 'relative' }}>
@@ -15,13 +17,93 @@ function Container() {
           top: 0,
         }}
       >
-        <QuadraticVote.Pool creditColor='#D1D5DB' circleColor='#3B82F6' />
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button
+            type='button'
+            onClick={() => setPoolTab('grid')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #ddd',
+              background: poolTab === 'grid' ? '#111827' : '#fff',
+              color: poolTab === 'grid' ? '#fff' : '#111827',
+              cursor: 'pointer',
+            }}
+          >
+            Grid Pool
+          </button>
+          <button
+            type='button'
+            onClick={() => setPoolTab('liquid')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #ddd',
+              background: poolTab === 'liquid' ? '#111827' : '#fff',
+              color: poolTab === 'liquid' ? '#fff' : '#111827',
+              cursor: 'pointer',
+            }}
+          >
+            Liquid Pool
+          </button>
+        </div>
+
+        {poolTab === 'grid' ? (
+          <QuadraticVote.Pool creditColor='#D1D5DB' circleColor='#3B82F6' />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type='button'
+                onClick={() => setLiquidShape('circle')}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid #ddd',
+                  background: liquidShape === 'circle' ? '#111827' : '#fff',
+                  color: liquidShape === 'circle' ? '#fff' : '#111827',
+                  cursor: 'pointer',
+                }}
+              >
+                Circle
+              </button>
+              <button
+                type='button'
+                onClick={() => setLiquidShape('rect')}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid #ddd',
+                  background: liquidShape === 'rect' ? '#111827' : '#fff',
+                  color: liquidShape === 'rect' ? '#fff' : '#111827',
+                  cursor: 'pointer',
+                }}
+              >
+                Rect
+              </button>
+            </div>
+          </div>
+        )}
 
         <div>
           <button style={{ marginRight: 10 }} onClick={reset}>
             Reset
           </button>
         </div>
+      </div>
+      <div id='pamonha' style={{ position: 'absolute', left: '50%', top: 0 }}>
+        <QuadraticVote.LiquidPool
+          shape={liquidShape}
+          size={120}
+          liquidScale={0.5}
+          inkColor='#ffffff'
+          backgroundColor='#1c222b'
+          blurPx={1}
+          contrast={10}
+          mixBlendMode='normal'
+          burstCount={2}
+          dryOutMs={0}
+        />
       </div>
 
       <div id='container'>

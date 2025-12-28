@@ -40,13 +40,29 @@ type Flight = {
 
 const EASING = (t: number) => 1 - Math.pow(1 - t, 3)
 
-function getCircleScreenRect(circle: SVGCircleElement) {
-  const bbox = circle.getBoundingClientRect()
+function getNodeScreenRect(node: Element) {
+  const bbox = node.getBoundingClientRect()
   return {
     x: bbox.left + bbox.width / 2,
     y: bbox.top + bbox.height / 2,
-    r: bbox.width / 2,
+    r: Math.min(bbox.width, bbox.height) / 2,
   }
+}
+
+function getNodeColor(node: Element | null): string | null {
+  if (!node) return null
+  if (node instanceof SVGCircleElement) return node.getAttribute('fill')
+  const style = window.getComputedStyle(node as HTMLElement)
+  return style.backgroundColor || null
+}
+
+function getPoolCircleOrAnchor(poolIndex: number): Element | null {
+  const poolCircle = document.getElementById(
+    `pool-${poolIndex}`,
+  ) as SVGCircleElement | null
+  if (poolCircle) return poolCircle
+  const anchor = document.getElementById('qv-pool-anchor')
+  return anchor
 }
 
 function getDiamondLevelCircles(
@@ -138,9 +154,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
           const targetCircle = targets[i]
           if (!targetCircle) continue
           const ai = parseInt(targetCircle.getAttribute('data-ai') || '0', 10)
-          const colorProbe = document.getElementById(
-            `pool-${poolIndex}`,
-          ) as SVGCircleElement | null
+          const colorProbe = getPoolCircleOrAnchor(poolIndex)
           // announce start for this diamond circle
           window.dispatchEvent(
             new CustomEvent('qv:anim', {
@@ -159,7 +173,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
             direction: 'toDiamond',
             poolIndex,
             diamond: { id: detail.diamondId, level: detail.diamondLevel, ai },
-            color: detail.color ?? colorProbe?.getAttribute('fill') ?? 'black',
+            color: detail.color ?? getNodeColor(colorProbe) ?? 'black',
             startAt: now,
             durationMs: 650,
             delayMs: i * 60,
@@ -207,9 +221,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
           const diamondCircle = sources[i]
           if (!diamondCircle) continue
           const ai = parseInt(diamondCircle.getAttribute('data-ai') || '0', 10)
-          const colorProbe = document.getElementById(
-            `pool-${poolIndex}`,
-          ) as SVGCircleElement | null
+          const colorProbe = getPoolCircleOrAnchor(poolIndex)
           // announce start for this diamond circle
           window.dispatchEvent(
             new CustomEvent('qv:anim', {
@@ -228,7 +240,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
             direction: 'toPool',
             poolIndex,
             diamond: { id: detail.diamondId, level: detail.diamondLevel, ai },
-            color: detail.color ?? colorProbe?.getAttribute('fill') ?? 'black',
+            color: detail.color ?? getNodeColor(colorProbe) ?? 'black',
             startAt: now,
             durationMs: 650,
             delayMs: i * 60,
@@ -286,9 +298,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
       const t = Math.min(1, Math.max(0, tRaw))
       const eased = EASING(t)
 
-      const poolEl = document.getElementById(
-        `pool-${f.poolIndex}`,
-      ) as SVGCircleElement | null
+      const poolEl = getPoolCircleOrAnchor(f.poolIndex)
       const diamondEl = document.querySelector(
         `svg[data-diamond-id="${String(f.diamond.id)}"] circle[data-level="${String(f.diamond.id)}-${f.diamond.level}"][data-ai="${f.diamond.ai}"]`,
       ) as SVGCircleElement | null
@@ -296,13 +306,13 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
       let fromRect: { x: number; y: number; r: number }
       let toRect: { x: number; y: number; r: number }
       if (f.direction === 'toDiamond') {
-        fromRect = poolEl ? getCircleScreenRect(poolEl) : { x: 0, y: 0, r: 4 }
-        toRect = diamondEl ? getCircleScreenRect(diamondEl) : fromRect
+        fromRect = poolEl ? getNodeScreenRect(poolEl) : { x: 0, y: 0, r: 4 }
+        toRect = diamondEl ? getNodeScreenRect(diamondEl) : fromRect
       } else {
         fromRect = diamondEl
-          ? getCircleScreenRect(diamondEl)
+          ? getNodeScreenRect(diamondEl)
           : { x: 0, y: 0, r: 4 }
-        toRect = poolEl ? getCircleScreenRect(poolEl) : fromRect
+        toRect = poolEl ? getNodeScreenRect(poolEl) : fromRect
       }
 
       const x = fromRect.x + (toRect.x - fromRect.x) * eased
@@ -310,7 +320,16 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
       const r = fromRect.r
       const opacity = t < 0.1 ? t / 0.1 : 1
       const scale = t < 0.2 ? 0.8 + 0.2 * (t / 0.2) : 1
-      const size = r * scale
+      // Droplet-like scaling: shrink a bit on extraction/absorption.
+      let dropletScale = 1
+      if (f.direction === 'toDiamond') {
+        // pulled out of the pool: slightly bigger then smaller quickly
+        if (t < 0.25) dropletScale = 1.15 - 0.35 * (t / 0.25)
+      } else {
+        // returning to pool: shrink as it merges at the end
+        if (t > 0.7) dropletScale = 1 - 0.45 * ((t - 0.7) / 0.3)
+      }
+      const size = r * scale * dropletScale
       const style: React.CSSProperties = {
         position: 'fixed',
         left: `${x - size}px`,
@@ -322,6 +341,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
         opacity,
         willChange: 'transform, left, top, opacity',
         transition: 'opacity 120ms linear',
+        transform: 'translateZ(0)',
       }
       return <div key={f.id} style={style} />
     })
