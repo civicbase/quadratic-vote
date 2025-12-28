@@ -31,13 +31,17 @@ jobs:
         with:
           node-version: "20.x"
           cache: "npm"
-          registry-url: "https://registry.npmjs.org"
+          # Avoid generating a token-ish .npmrc (always-auth/_authToken). OIDC publish doesn't need it.
 
       # npm Trusted Publishing (OIDC) requires a newer npm CLI.
       - name: Upgrade npm for Trusted Publishing
         run: |
           npm i -g npm@^11.5.1
           npm -v
+
+      - name: Prepare clean npm config for OIDC publish
+        run: |
+          echo "" > "${GITHUB_WORKSPACE}/.npmrc.oidc"
 
       - name: Install dependencies
         run: npm ci
@@ -69,6 +73,8 @@ jobs:
       - name: Publish
         env:
           NPM_CONFIG_PROVENANCE: "true"
+          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc.oidc
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
         run: npm publish --access public
 
 
