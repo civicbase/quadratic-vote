@@ -55,7 +55,9 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Use npm Trusted Publishing (OIDC) instead of long-lived tokens.
+          # Requires the Trusted Publisher connection configured in npm and:
+          # permissions: id-token: write
+          NPM_CONFIG_PROVENANCE: "true"
         run: npx semantic-release
 
