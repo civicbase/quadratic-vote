@@ -8,13 +8,7 @@ dryRun: false
 plugins:
   - '@semantic-release/commit-analyzer'
   - '@semantic-release/release-notes-generator'
-  # Use npm Trusted Publishing (OIDC) via `npm publish --provenance` instead of NPM_TOKEN.
-  - - '@semantic-release/exec'
-    - prepareCmd: 'npm version ${nextRelease.version} --no-git-tag-version && npm run build'
-      publishCmd: 'npm publish --provenance --access public'
-      # If publish fails after creating the tag, clean it up so the next run can retry.
-      failCmd: 'git push origin --delete v${nextRelease.version} || true'
-  - - '@semantic-release/github'
-    # Avoid extra API calls / issues during failure reporting; publishing releases still works.
-    - successComment: false
-      failComment: false
+  # Use token-based publishing for stability.
+  # Configure GitHub Actions secret: NPM_TOKEN (must have publish rights for `quadratic-vote`).
+  - '@semantic-release/npm'
+  - '@semantic-release/github'
