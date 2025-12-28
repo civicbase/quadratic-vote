@@ -13,7 +13,7 @@ plugins:
     - prepareCmd: 'npm version ${nextRelease.version} --no-git-tag-version && npm run build'
       publishCmd: 'npm publish --provenance --access public'
       # If publish fails after creating the tag, clean it up so the next run can retry.
-      failCmd: 'git push origin --delete v${nextRelease.version} || true; git tag -d v${nextRelease.version} || true'
+      failCmd: 'git push https://x-access-token:${GITHUB_TOKEN}@github.com/civicbase/quadratic-vote.git --delete v${nextRelease.version} || true; git tag -d v${nextRelease.version} || true'
   - - '@semantic-release/github'
     # Avoid extra API calls / issues during failure reporting; publishing releases still works.
     - successComment: false

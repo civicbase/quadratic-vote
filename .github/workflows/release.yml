@@ -61,7 +61,7 @@ jobs:
       - name: Prepare clean npm config for OIDC publish
         run: |
           # Ensure npm doesn't read any token-based config accidentally.
-          echo "" > "$RUNNER_TEMP/empty.npmrc"
+          echo "" > "${GITHUB_WORKSPACE}/.npmrc.oidc"
 
       - name: Debug OIDC availability
         run: |
@@ -75,9 +75,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
           # Force npm to use a clean config file (no always-auth, no tokens).
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/empty.npmrc
+          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc.oidc
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-        run: npx semantic-release
+        run: |
+          # If these are present (even empty), npm may treat the run as token-auth instead of OIDC.
+          unset NODE_AUTH_TOKEN NPM_TOKEN
+          npx semantic-release
 
