@@ -31,7 +31,7 @@
   "description": "A React component library for implementing interactive quadratic voting systems with smooth animations. Express voting intensity with animated credit allocation.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/civicbase/quadratic-vote.git"
+    "url": "git+https://github.com/civicbase/quadratic-vote.git"
   },
   "keywords": [
     "react",
