@@ -121,30 +121,29 @@ npm run build
 npm install
 ```
 
-### 2. Configure npm Token
+### 2. Configure npm Trusted Publishing (Recommended)
 
-**A. Generate npm token:**
+This repository is set up to publish to npm using **Trusted Publishing (OIDC)** from GitHub Actions.
 
-```bash
-npm login
-npm token create --type=automation
-```
+**A. Configure npm:**
 
-Copy the token (format: `npm_xxxxxxxxxxxxx`)
+1. Go to the npm package settings for `quadratic-vote`
+2. Find **Trusted publishing**
+3. Add a **GitHub Actions** trusted publisher with:
+   - Organization/user: `civicbase`
+   - Repository: `quadratic-vote`
+   - Workflow filename: `release.yml`
+   - Environment name: *(leave blank unless you use GitHub Environments)*
 
-**B. Add to GitHub:**
+**B. GitHub Actions permissions:**
 
-1. Go to: `https://github.com/civicbase/quadratic-vote/settings/secrets/actions`
-2. Click **New repository secret**
-3. Name: `NPM_TOKEN`
-4. Value: Paste your npm token
-5. Click **Add secret**
+The workflow must have `permissions: id-token: write` (already present in `.github/workflows/release.yml`).
 
 ### 3. Verify Configuration
 
 Check these files exist:
 
-- ✅ `.releaserc.json` - Semantic release config
+- ✅ `.releaserc` - Semantic release config
 - ✅ `.github/workflows/release.yml` - Release workflow
 - ✅ `CHANGELOG.md` - Will be auto-updated
 
@@ -332,8 +331,8 @@ Migration:
 
 ## 🔐 Security
 
-- ✅ NPM_TOKEN is stored securely in GitHub Secrets
-- ✅ Token is never exposed in logs
+- ✅ Uses npm Trusted Publishing (OIDC) instead of long-lived npm tokens
+- ✅ No npm token stored in GitHub Secrets
 - ✅ Workflow runs in isolated environment
 - ✅ Only main branch can trigger releases
 - ✅ Two-factor authentication recommended for npm
@@ -343,7 +342,7 @@ Migration:
 - [Semantic Release Docs](https://semantic-release.gitbook.io/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Actions Docs](https://docs.github.com/en/actions)
-- [npm Token Docs](https://docs.npmjs.com/about-access-tokens)
+- [npm Trusted Publishing Docs](https://docs.npmjs.com/trusted-publishing)
 
 ## 🆘 Support
 

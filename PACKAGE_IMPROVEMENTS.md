@@ -130,7 +130,7 @@ Before publishing, ensure:
 - [ ] Update version in package.json
 - [ ] Update CHANGELOG.md (move Unreleased to version)
 - [ ] Test package locally: `npm pack` then `npm install ./quadratic-vote-*.tgz`
-- [ ] Set up NPM_TOKEN in GitHub secrets for automated releases
+- [ ] Set up npm Trusted Publishing (OIDC) for automated releases
 - [ ] Push to GitHub and verify CI passes
 - [ ] Create release tag or let semantic-release handle it
 
@@ -140,7 +140,7 @@ The package uses semantic-release for automated versioning and publishing:
 
 1. **Commit Format**: Use conventional commits (feat:, fix:, docs:, etc.)
 2. **GitHub Actions**: Release workflow runs on push to main
-3. **NPM Token**: Add `NPM_TOKEN` secret in GitHub repository settings
+3. **npm Trusted Publishing**: Configure Trusted Publishing (OIDC) for `civicbase/quadratic-vote` + `release.yml`
 4. **Versioning**: Automatically determined by commit messages
 5. **Changelog**: Automatically generated
 
