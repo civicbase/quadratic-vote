@@ -30,7 +30,9 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          # Do NOT set registry-url here.
+          # `actions/setup-node` will generate an .npmrc that prefers NODE_AUTH_TOKEN,
+          # which breaks npm Trusted Publishing (OIDC) if any old token is present.
 
       - name: Install dependencies
         run: npm ci
@@ -51,5 +53,8 @@ jobs:
           # Requires the Trusted Publisher connection configured in npm and:
           # permissions: id-token: write
           NPM_CONFIG_PROVENANCE: "true"
+          # Ensure npm does not pick up any legacy token-based auth.
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
         run: npx semantic-release
 
