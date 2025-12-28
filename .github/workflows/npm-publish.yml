@@ -1,0 +1,52 @@
+name: Publish to npm (OIDC)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      # npm Trusted Publishing (OIDC) requires a newer npm CLI.
+      - name: Upgrade npm for Trusted Publishing
+        run: |
+          npm i -g npm@^11.5.1
+          npm -v
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Set package version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          npm version "$VERSION" --no-git-tag-version
+
+      - name: Publish
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+        run: npm publish --access public
+
+

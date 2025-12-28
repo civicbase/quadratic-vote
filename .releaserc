@@ -8,13 +8,9 @@ dryRun: false
 plugins:
   - '@semantic-release/commit-analyzer'
   - '@semantic-release/release-notes-generator'
-  # Publish to npm via Trusted Publishing (OIDC). No npm tokens.
-  - - '@semantic-release/exec'
-    - prepareCmd: 'npm version ${nextRelease.version} --no-git-tag-version && npm run build'
-      publishCmd: 'npm publish --provenance --access public'
-      # If publish fails after creating the tag, clean it up so the next run can retry.
-      failCmd: 'git push https://x-access-token:${GITHUB_TOKEN}@github.com/civicbase/quadratic-vote.git --delete v${nextRelease.version} || true; git tag -d v${nextRelease.version} || true'
+  # GitHub Releases + git tags are created by semantic-release.
+  # npm publishing is handled separately by `.github/workflows/npm-publish.yml`
+  # via npm Trusted Publishing (OIDC) on tag pushes.
   - - '@semantic-release/github'
-    # Avoid extra API calls / issues during failure reporting; publishing releases still works.
     - successComment: false
       failComment: false
