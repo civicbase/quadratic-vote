@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish (example: v2.1.0). If empty, you must run this workflow on a tag ref."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,7 +47,23 @@ jobs:
 
       - name: Set package version from git tag
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          # Prefer explicit input if provided (useful for workflow_dispatch)
+          TAG_INPUT="${{ inputs.tag }}"
+          REF_NAME="${GITHUB_REF_NAME}"
+
+          if [[ -n "$TAG_INPUT" ]]; then
+            REF_NAME="$TAG_INPUT"
+          fi
+
+          if [[ "$REF_NAME" != v* ]]; then
+            echo "This workflow must run on a version tag (vX.Y.Z)."
+            echo "You ran it on ref: '$GITHUB_REF_NAME'."
+            echo "Re-run and select a tag ref, or provide inputs.tag (example: v2.1.0)."
+            exit 1
+          fi
+
+          VERSION="${REF_NAME#v}"
+          echo "Publishing version: $VERSION (from tag $REF_NAME)"
           npm version "$VERSION" --no-git-tag-version
 
       - name: Publish
