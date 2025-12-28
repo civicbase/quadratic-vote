@@ -1,9 +1,12 @@
 name: Publish to npm (OIDC)
 
 on:
-  push:
-    tags:
-      - "v*"
+  # NOTE: Tag pushes created by workflows (semantic-release using GITHUB_TOKEN) do NOT trigger
+  # other workflows via `on: push` due to GitHub recursion protections.
+  # So we trigger off the Release workflow completion instead.
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -17,6 +20,7 @@ permissions:
 
 jobs:
   publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +28,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,25 +52,34 @@ jobs:
       - name: Build package
         run: npm run build
 
-      - name: Set package version from git tag
+      - name: Determine tag to publish
+        id: tag
         run: |
-          # Prefer explicit input if provided (useful for workflow_dispatch)
+          # Prefer explicit input if provided (useful for workflow_dispatch).
           TAG_INPUT="${{ inputs.tag }}"
-          REF_NAME="${GITHUB_REF_NAME}"
 
           if [[ -n "$TAG_INPUT" ]]; then
-            REF_NAME="$TAG_INPUT"
+            TAG="$TAG_INPUT"
+          else
+            # When triggered by workflow_run, publish the newest v* tag reachable from that run's SHA.
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            TAG="$(git describe --tags --abbrev=0 --match 'v*' "$SHA" 2>/dev/null || true)"
           fi
 
-          if [[ "$REF_NAME" != v* ]]; then
-            echo "This workflow must run on a version tag (vX.Y.Z)."
-            echo "You ran it on ref: '$GITHUB_REF_NAME'."
-            echo "Re-run and select a tag ref, or provide inputs.tag (example: v2.1.0)."
+          if [[ -z "$TAG" || "$TAG" != v* ]]; then
+            echo "No version tag (vX.Y.Z) found to publish."
+            echo "If running manually, provide inputs.tag (example: v2.1.0)."
             exit 1
           fi
 
-          VERSION="${REF_NAME#v}"
-          echo "Publishing version: $VERSION (from tag $REF_NAME)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Will publish tag: $TAG"
+
+      - name: Set package version from tag
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION="${TAG#v}"
+          echo "Publishing version: $VERSION (from tag $TAG)"
           npm version "$VERSION" --no-git-tag-version
 
       - name: Publish
