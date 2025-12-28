@@ -30,7 +30,9 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          # Do NOT set registry-url here.
+          # `actions/setup-node` writes a token-based .npmrc (always-auth/_authToken) which can
+          # interfere with npm Trusted Publishing (OIDC) and produce "token expired/revoked".
 
       # npm Trusted Publishing (OIDC) requires newer npm.
       # Without this, `npm publish` will fail with ENEEDAUTH ("need auth").
@@ -51,9 +53,18 @@ jobs:
       - name: Run tests
         run: npm test -- --run
 
+      - name: Prepare clean npm config for OIDC publish
+        run: |
+          # Ensure npm doesn't read any token-based config accidentally.
+          echo "" > "$RUNNER_TEMP/empty.npmrc"
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
+          # Force npm to use a clean config file (no always-auth, no tokens).
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/empty.npmrc
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
         run: npx semantic-release
 
