@@ -46,6 +46,13 @@ jobs:
       - name: Run tests
         run: npm test -- --run
 
+      - name: Debug npm Trusted Publishing prerequisites
+        run: |
+          node -v
+          npm -v
+          npm config get registry
+          node -e "console.log('ACTIONS_ID_TOKEN_REQUEST_URL set:', !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL); console.log('ACTIONS_ID_TOKEN_REQUEST_TOKEN set:', !!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN)"
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
