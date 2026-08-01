@@ -146,10 +146,15 @@ function Pool({
 
   const viewBox = useMemo(() => setViewBox(circles), [circles])
 
+  // `data-circle-color` / `data-credit-color` let VoteAnimation know what colour
+  // a credit should be by the time it lands here, without having to guess which
+  // circle is currently free.
   return (
     <svg
       data-pool='true'
       data-reverse={reverse ? 'true' : 'false'}
+      data-circle-color={circleColor}
+      data-credit-color={creditColor}
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
       width={viewBox.width}
       height={viewBox.height}

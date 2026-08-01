@@ -824,6 +824,7 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       <main
         data-pool='true'
         data-liquid-pool='true'
+        data-circle-color={inkColor}
         ref={mainRef as unknown as React.RefObject<HTMLElement>}
         className={`${scope}${dryState === 'drying' ? ' qv-liquidpool--drying' : ''}${dryState === 'dry' ? ' qv-liquidpool--dry' : ''}`}
         style={

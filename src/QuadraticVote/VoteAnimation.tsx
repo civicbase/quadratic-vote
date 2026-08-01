@@ -32,7 +32,10 @@ type Flight = {
   direction: 'toDiamond' | 'toPool'
   poolIndex: number
   diamond: { id: string | number; level: number; ai: number }
+  /** Colour worn for most of the trip. */
   color: string
+  /** Colour adopted shortly before touchdown. Equal to `color` when unchanged. */
+  landingColor: string
   startAt: number
   durationMs: number
   delayMs: number
@@ -61,6 +64,16 @@ function staggerFor(count: number) {
   return Math.min(STAGGER_MS, STAGGER_WINDOW_MS / (count - 1))
 }
 
+/**
+ * Fraction of the trip after which a credit takes on its landing colour, and how
+ * long that cross-fade lasts. A credit returning from a diamond keeps the vote
+ * colour (green/red) the whole way and only becomes a pool credit at the end.
+ */
+// The fade must finish before the credit is removed at the end of its flight,
+// or it lands mid-blend: 0.75 * 650ms + 130ms = 618ms, comfortably inside 650ms.
+const LANDING_COLOR_AT = 0.75
+const COLOR_FADE_MS = 130
+
 function getNodeScreenRect(node: Element) {
   const bbox = node.getBoundingClientRect()
   return {
@@ -72,7 +85,13 @@ function getNodeScreenRect(node: Element) {
 
 function getNodeColor(node: Element | null): string | null {
   if (!node) return null
-  if (node instanceof SVGCircleElement) return node.getAttribute('fill')
+  if (node instanceof SVGElement) {
+    // Diamond paints through `style.fill` while Pool uses the `fill` attribute,
+    // so read the computed value first and only then fall back to the attribute.
+    const computed = window.getComputedStyle(node).fill
+    if (computed && computed !== 'none') return computed
+    return node.getAttribute('fill')
+  }
   const style = window.getComputedStyle(node as HTMLElement)
   return style.backgroundColor || null
 }
@@ -82,6 +101,18 @@ function getPoolCircleOrAnchor(poolIndex: number): Element | null {
   if (poolCircle) return poolCircle
   const anchor = document.getElementById('qv-pool-anchor')
   return anchor
+}
+
+/**
+ * The colour a credit ends up as once it has settled back into the pool. Pool
+ * and LiquidPool both declare it, so we do not have to guess which circle is
+ * currently free — every circle in range is showing the spent colour mid-flight.
+ */
+function getPoolLandingColor(poolIndex: number): string | null {
+  const pool = document.querySelector('[data-pool="true"]')
+  const declared = pool?.getAttribute('data-circle-color')
+  if (declared) return declared
+  return getNodeColor(getPoolCircleOrAnchor(poolIndex))
 }
 
 function getDiamondLevelCircles(diamondId: string | number, level: number): SVGCircleElement[] {
@@ -167,6 +198,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
           if (!targetCircle) continue
           const ai = parseInt(targetCircle.getAttribute('data-ai') || '0', 10)
           const colorProbe = getPoolCircleOrAnchor(poolIndex)
+          const outboundColor = detail.color ?? getNodeColor(colorProbe) ?? 'black'
           // announce start for this diamond circle
           window.dispatchEvent(
             new CustomEvent('qv:anim', {
@@ -185,7 +217,8 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
             direction: 'toDiamond',
             poolIndex,
             diamond: { id: detail.diamondId, level: detail.diamondLevel, ai },
-            color: detail.color ?? getNodeColor(colorProbe) ?? 'black',
+            color: outboundColor,
+            landingColor: outboundColor,
             startAt: now,
             durationMs: FLIGHT_DURATION_MS,
             delayMs,
@@ -227,7 +260,10 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
           const diamondCircle = sources[i]
           if (!diamondCircle) continue
           const ai = parseInt(diamondCircle.getAttribute('data-ai') || '0', 10)
-          const colorProbe = getPoolCircleOrAnchor(poolIndex)
+          // Probed before the start event triggers a re-render, so this is still
+          // the vote colour the circle is showing right now.
+          const departureColor = detail.color ?? getNodeColor(diamondCircle) ?? 'black'
+          const arrivalColor = getPoolLandingColor(poolIndex) ?? departureColor
           // announce start for this diamond circle
           window.dispatchEvent(
             new CustomEvent('qv:anim', {
@@ -246,7 +282,9 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
             direction: 'toPool',
             poolIndex,
             diamond: { id: detail.diamondId, level: detail.diamondLevel, ai },
-            color: detail.color ?? getNodeColor(colorProbe) ?? 'black',
+            // Carries the vote colour home, turning into a pool credit at the end.
+            color: departureColor,
+            landingColor: arrivalColor,
             startAt: now,
             durationMs: FLIGHT_DURATION_MS,
             delayMs,
@@ -324,6 +362,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
         if (t > 0.7) dropletScale = 1 - 0.45 * ((t - 0.7) / 0.3)
       }
       const size = r * scale * dropletScale
+      const background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
       const style: React.CSSProperties = {
         position: 'fixed',
         left: `${x - size}px`,
@@ -331,10 +370,10 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
         width: `${size * 2}px`,
         height: `${size * 2}px`,
         borderRadius: '50%',
-        background: f.color,
+        background,
         opacity,
         willChange: 'transform, left, top, opacity',
-        transition: 'opacity 120ms linear',
+        transition: `opacity 120ms linear, background-color ${COLOR_FADE_MS}ms linear`,
         transform: 'translateZ(0)',
       }
       return <div key={f.id} style={style} />
