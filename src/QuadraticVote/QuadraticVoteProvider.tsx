@@ -1,5 +1,5 @@
 import React, { ReactNode, createContext, useEffect, useState } from 'react'
-import VoteAnimation, { LaunchAnimationPayload } from './VoteAnimation'
+import VoteAnimation, { LaunchAnimationPayload, ReturnOrder } from './VoteAnimation'
 
 /**
  * Question object representing a votable item
@@ -45,6 +45,8 @@ export const QuadraticVote = createContext<QuadraticVoteType>(null!)
  * @param credits - Total voting credits (must be between 4-225)
  * @param questions - Array of questions to vote on
  * @param children - Your voting interface components
+ * @param returnOrder - Order in which freed circles refill the pool
+ *                      (default `'first-out-last-in'`)
  *
  * @example
  * ```tsx
@@ -61,10 +63,13 @@ const QuadraticVoteProvider = ({
   children,
   credits,
   questions: qs,
+  returnOrder,
 }: {
   children: ReactNode
   credits: number
   questions: Question[]
+  /** @default 'first-out-last-in' */
+  returnOrder?: ReturnOrder
 }) => {
   const [questions, setQuestions] = useState(qs)
 
@@ -178,7 +183,7 @@ const QuadraticVoteProvider = ({
       }}
     >
       {children}
-      <VoteAnimation />
+      <VoteAnimation returnOrder={returnOrder} />
     </QuadraticVote.Provider>
   )
 }

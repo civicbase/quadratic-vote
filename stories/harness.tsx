@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import QuadraticVote, { Question, useQuadraticVote } from '../src/QuadraticVote'
+import QuadraticVote, { Question, ReturnOrder, useQuadraticVote } from '../src/QuadraticVote'
 
 /**
  * Shared scaffolding for the stories. None of this ships — it exists so every
@@ -23,14 +23,21 @@ export const shortQuestions: Question[] = [
 export function Sandbox({
   credits = 100,
   questions = sampleQuestions,
+  returnOrder,
   children,
 }: {
   credits?: number
   questions?: Question[]
+  returnOrder?: ReturnOrder
   children: ReactNode
 }) {
   return (
-    <QuadraticVote.Provider key={credits} credits={credits} questions={questions}>
+    <QuadraticVote.Provider
+      key={`${credits}-${returnOrder ?? 'default'}`}
+      credits={credits}
+      questions={questions}
+      returnOrder={returnOrder}
+    >
       <div style={styles.sandbox}>{children}</div>
     </QuadraticVote.Provider>
   )

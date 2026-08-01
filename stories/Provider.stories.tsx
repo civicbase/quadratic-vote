@@ -27,15 +27,23 @@ const meta = {
       control: false,
       description: 'Seeds state on mount only. Remount with a `key` to change it.',
     },
+    returnOrder: {
+      control: 'inline-radio',
+      options: ['first-out-last-in', 'first-out-first-in'],
+      description:
+        'Order in which pool circles refill when credits return from a diamond. ' +
+        'Spend several votes on one question, then vote it back down to see the difference.',
+    },
     children: { control: false, table: { disable: true } },
   },
   args: {
     credits: 100,
     questions: sampleQuestions,
     children: null,
+    returnOrder: 'first-out-last-in',
   },
-  render: ({ credits, questions }) => (
-    <Sandbox credits={credits} questions={questions}>
+  render: ({ credits, questions, returnOrder }) => (
+    <Sandbox credits={credits} questions={questions} returnOrder={returnOrder}>
       <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
         <Panel title='Credits'>
           <QuadraticVote.Pool creditColor='#E5E7EB' circleColor='#2563EB' />

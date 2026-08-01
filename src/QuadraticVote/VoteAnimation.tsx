@@ -131,11 +131,27 @@ function getDiamondLevelCircles(diamondId: string | number, level: number): SVGC
   return arr
 }
 
+/**
+ * The order in which freed circles refill the pool.
+ *
+ * - `first-out-last-in` — the circle that emptied first is the last to refill,
+ *   so the pool drains and refills like a stack. This reads as the credits
+ *   retracing their steps.
+ * - `first-out-first-in` — the circle that emptied first refills first, so the
+ *   block refills in the same direction it drained.
+ */
+export type ReturnOrder = 'first-out-last-in' | 'first-out-first-in'
+
 export interface VoteAnimationProps {
   zIndex?: number
+  /** @default 'first-out-last-in' */
+  returnOrder?: ReturnOrder
 }
 
-const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
+const VoteAnimation: React.FC<VoteAnimationProps> = ({
+  zIndex = 9999,
+  returnOrder = 'first-out-last-in',
+}) => {
   const [flights, setFlights] = useState<Flight[]>([])
   const counter = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -256,7 +272,10 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
         for (let i = 0; i < count; i++) {
           // Mirrors the outbound trip: one credit returns at a time.
           const delayMs = i * stagger
-          const poolIndex = detail.poolStartIndex + i
+          // Credits left the pool in ascending index order, so filling the freed
+          // block back to front makes the first circle out the last one in.
+          const slot = returnOrder === 'first-out-last-in' ? count - 1 - i : i
+          const poolIndex = detail.poolStartIndex + slot
           const diamondCircle = sources[i]
           if (!diamondCircle) continue
           const ai = parseInt(diamondCircle.getAttribute('data-ai') || '0', 10)
@@ -323,7 +342,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
 
     window.addEventListener('qv:launch-animation', handler as EventListener)
     return () => window.removeEventListener('qv:launch-animation', handler as EventListener)
-  }, [])
+  }, [returnOrder])
 
   const elements = useMemo(() => {
     const now = performance.now()

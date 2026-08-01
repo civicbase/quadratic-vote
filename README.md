@@ -155,11 +155,27 @@ function App() {
 
 The context provider that wraps your voting interface.
 
-| Prop        | Type         | Required | Description                                  |
-| ----------- | ------------ | -------- | -------------------------------------------- |
-| `credits`   | `number`     | ✅       | Total voting credits (must be between 4-225) |
-| `questions` | `Question[]` | ✅       | Array of questions to vote on                |
-| `children`  | `ReactNode`  | ✅       | Your voting interface components             |
+| Prop          | Type          | Required | Description                                  |
+| ------------- | ------------- | -------- | -------------------------------------------- |
+| `credits`     | `number`      | ✅       | Total voting credits (must be between 4-225) |
+| `questions`   | `Question[]`  | ✅       | Array of questions to vote on                |
+| `children`    | `ReactNode`   | ✅       | Your voting interface components             |
+| `returnOrder` | `ReturnOrder` |          | Refill order, default `'first-out-last-in'`  |
+
+#### `returnOrder`
+
+Controls the order in which pool circles refill when credits come back from a diamond.
+
+- `'first-out-last-in'` (default) — the circle that emptied first is the last to
+  refill, so credits appear to retrace their steps. The pool behaves like a stack.
+- `'first-out-first-in'` — the circle that emptied first refills first, so the block
+  refills in the same direction it drained.
+
+```tsx
+<QuadraticVote.Provider credits={100} questions={questions} returnOrder='first-out-first-in'>
+  {/* ... */}
+</QuadraticVote.Provider>
+```
 
 ### `<QuadraticVote.Pool>`
 
@@ -179,29 +195,24 @@ Displays the credit pool showing available and used credits with animated transi
 Compact alternative to `<Pool>` designed for mobile: a gooey “liquid loader” style pool (based on the referenced CodePen), plus a single pool anchor so credits always exit/return from the same spot.
 
 ```tsx
-<QuadraticVote.LiquidPool
-  shape='circle'
-  size={140}
-  inkColor='#fff'
-  backgroundColor='#000'
-/>
+<QuadraticVote.LiquidPool shape='circle' size={140} inkColor='#fff' backgroundColor='#000' />
 ```
 
-| Prop              | Type                   | Default                 | Description                                         |
-| ----------------- | ---------------------- | ----------------------- | --------------------------------------------------- |
-| `shape`           | `'circle' \| 'rect'`    | `'circle'`              | Pool container shape                                 |
-| `size`            | `number`               | `84`                    | Circle diameter (px)                                 |
-| `width`           | `number`               | `120`                   | Rect width (px)                                      |
-| `height`          | `number`               | `140`                   | Rect height (px)                                     |
-| `backgroundColor` | `string`               | `'grey'`                | Empty/background color                               |
-| `inkColor`        | `string`               | `'#fff'`                | Blob/droplet color                                   |
-| `blurPx`          | `number`               | `8`                     | Blur amount in px                                    |
-| `contrast`        | `number`               | `18`                    | Contrast multiplier                                  |
-| `burstCount`      | `number`               | `4`                     | Droplets emitted on each credit transfer event       |
-| `dryOutMs`        | `number`               | `0`                     | Dry-out duration before switching to blank (ms)      |
-| `coreScaleMode`   | `'available' \| 'used'` | `'available'`          | Which credits drive the center blob size             |
-| `coreScaleMin`    | `number`               | `0.6`                   | Min center blob scale                                |
-| `coreScaleMax`    | `number`               | `1`                     | Max center blob scale                                |
+| Prop              | Type                    | Default       | Description                                     |
+| ----------------- | ----------------------- | ------------- | ----------------------------------------------- |
+| `shape`           | `'circle' \| 'rect'`    | `'circle'`    | Pool container shape                            |
+| `size`            | `number`                | `84`          | Circle diameter (px)                            |
+| `width`           | `number`                | `120`         | Rect width (px)                                 |
+| `height`          | `number`                | `140`         | Rect height (px)                                |
+| `backgroundColor` | `string`                | `'grey'`      | Empty/background color                          |
+| `inkColor`        | `string`                | `'#fff'`      | Blob/droplet color                              |
+| `blurPx`          | `number`                | `8`           | Blur amount in px                               |
+| `contrast`        | `number`                | `18`          | Contrast multiplier                             |
+| `burstCount`      | `number`                | `4`           | Droplets emitted on each credit transfer event  |
+| `dryOutMs`        | `number`                | `0`           | Dry-out duration before switching to blank (ms) |
+| `coreScaleMode`   | `'available' \| 'used'` | `'available'` | Which credits drive the center blob size        |
+| `coreScaleMin`    | `number`                | `0.6`         | Min center blob scale                           |
+| `coreScaleMax`    | `number`                | `1`           | Max center blob scale                           |
 
 ### `<QuadraticVote.Diamond>`
 
