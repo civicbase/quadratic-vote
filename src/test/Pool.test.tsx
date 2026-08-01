@@ -1,12 +1,19 @@
 import React from 'react'
 import '@testing-library/jest-dom/vitest'
-import { render } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { act, cleanup, render } from '@testing-library/react'
+import { describe, it, expect, afterEach } from 'vitest'
 
-import QuadraticVote from '../QuadraticVote'
+import QuadraticVote, { useQuadraticVote } from '../QuadraticVote'
 import { questions } from './test-utils'
 
 describe('Pool Component', () => {
+  // Explicit unmount: a surviving VoteAnimation would answer the next test's
+  // events and release the holds under test early.
+  afterEach(() => {
+    cleanup()
+    document.getElementById('animation-overlay')?.remove()
+  })
+
   // const creditColor = "black";
   const circleColor = 'grey'
 
@@ -107,10 +114,106 @@ describe('Pool Component', () => {
     const circles = container.querySelectorAll('circle')
 
     circles.forEach((circle) => {
-      transition = window
-        .getComputedStyle(circle)
-        .getPropertyValue('transition')
+      transition = window.getComputedStyle(circle).getPropertyValue('transition')
       expect(transitionExpect).equal(transition)
+    })
+  })
+
+  /**
+   * `usedCredits` jumps the instant a vote lands, so without these holds every
+   * affected circle would recolour in the same frame instead of one at a time.
+   */
+  describe('staggered drain and refill', () => {
+    const SPENT = 'rgb(0, 0, 0)'
+    const AVAILABLE = 'rgb(128, 128, 128)'
+
+    let api: ReturnType<typeof useQuadraticVote>
+
+    const Probe = () => {
+      api = useQuadraticVote()
+      return null
+    }
+
+    const Setup = () => (
+      <QuadraticVote.Provider credits={25} questions={questions}>
+        <QuadraticVote.Pool creditColor={SPENT} circleColor={AVAILABLE} />
+        <QuadraticVote.Diamond id={0} />
+        <Probe />
+      </QuadraticVote.Provider>
+    )
+
+    const poolCircles = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll('svg[data-pool="true"] circle'))
+
+    const endPoolAnimation = (direction: 'toDiamond' | 'toPool', poolIndex: number) =>
+      act(async () => {
+        window.dispatchEvent(
+          new CustomEvent('qv:anim-pool', {
+            detail: { phase: 'end', direction, poolIndex },
+          }),
+        )
+      })
+
+    it('keeps a departing circle available until its credit has actually left', async () => {
+      const { container } = render(<Setup />)
+
+      await act(async () => {
+        api.vote(0, 1)
+      })
+
+      // The credit is mid-flight, so the circle it came from must still read as
+      // available even though the budget already counts it as spent.
+      expect(poolCircles(container)[0].getAttribute('fill')).toBe(AVAILABLE)
+
+      await endPoolAnimation('toDiamond', 0)
+
+      expect(poolCircles(container)[0].getAttribute('fill')).toBe(SPENT)
+    })
+
+    it('keeps an arriving circle spent until its credit lands', async () => {
+      const { container } = render(<Setup />)
+
+      await act(async () => {
+        api.vote(0, 1)
+      })
+      await endPoolAnimation('toDiamond', 0)
+      expect(poolCircles(container)[0].getAttribute('fill')).toBe(SPENT)
+
+      await act(async () => {
+        api.vote(0, -1)
+      })
+
+      expect(poolCircles(container)[0].getAttribute('fill')).toBe(SPENT)
+
+      await endPoolAnimation('toPool', 0)
+
+      expect(poolCircles(container)[0].getAttribute('fill')).toBe(AVAILABLE)
+    })
+
+    it('drains each circle on its own schedule rather than all at once', async () => {
+      const { container } = render(<Setup />)
+
+      // Three votes cost 9 credits at once.
+      await act(async () => {
+        api.vote(0, 1)
+      })
+      await act(async () => {
+        api.vote(0, 1)
+      })
+      await act(async () => {
+        api.vote(0, 1)
+      })
+
+      const spentCount = () =>
+        poolCircles(container).filter((c) => c.getAttribute('fill') === SPENT).length
+
+      expect(spentCount()).toBe(0)
+
+      await endPoolAnimation('toDiamond', 0)
+      expect(spentCount()).toBe(1)
+
+      await endPoolAnimation('toDiamond', 1)
+      expect(spentCount()).toBe(2)
     })
   })
 })
