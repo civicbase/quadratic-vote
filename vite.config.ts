@@ -51,6 +51,9 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         './tests/vitest.setup.ts',
+        // Built output mirrors src; counting it halved every reported number.
+        'dist/**/*',
+        '.tmp-pack/**/*',
         'build/**/*',
         'deploy/**/*',
         '.storybook/**/*',

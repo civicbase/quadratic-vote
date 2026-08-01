@@ -11,6 +11,7 @@ export default [
       'dist',
       'coverage',
       'storybook-static',
+      '.tmp-pack',
       'node_modules',
       '*.config.js',
       '*.config.ts',
