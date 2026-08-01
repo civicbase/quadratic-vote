@@ -106,10 +106,16 @@ function Pool({
       const cx = column * (circleRadius * 2 + circleSpacing) + circleRadius
       const cy = row * (circleRadius * 2 + circleSpacing) + circleRadius
 
+      // `usedCredits` jumps the moment a vote is cast, so on its own every
+      // affected circle would recolour in the same frame. The in-flight sets
+      // hold each circle at its *previous* state until its own credit actually
+      // lands, which is what staggers the drain and the refill.
       const isUsedCredit = reverse ? i >= credits - usedCredits : i < usedCredits
       let fillColor = isUsedCredit ? creditColor : circleColor
+      // Flying back: stay spent until this credit arrives.
       if (arriving.has(i)) fillColor = creditColor
-      if (departing.has(i)) fillColor = creditColor
+      // Flying out: stay available until this credit has left.
+      if (departing.has(i)) fillColor = circleColor
 
       circleElements.push(
         <circle

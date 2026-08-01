@@ -40,6 +40,27 @@ type Flight = {
 
 const EASING = (t: number) => 1 - Math.pow(1 - t, 3)
 
+/** Base time a single credit spends in flight. */
+const FLIGHT_DURATION_MS = 650
+/** A credit's source circle is cleared shortly after it sets off. */
+const CLEAR_DELAY_MS = 150
+
+/**
+ * Credits move one at a time in both directions: the pool drains circle by
+ * circle on the way out and refills circle by circle on the way back.
+ *
+ * A single vote can move 30+ credits, so the per-credit gap is squeezed to keep
+ * the whole burst inside `STAGGER_WINDOW_MS` rather than dragging on for
+ * seconds.
+ */
+const STAGGER_MS = 110
+const STAGGER_WINDOW_MS = 900
+
+function staggerFor(count: number) {
+  if (count <= 1) return 0
+  return Math.min(STAGGER_MS, STAGGER_WINDOW_MS / (count - 1))
+}
+
 function getNodeScreenRect(node: Element) {
   const bbox = node.getBoundingClientRect()
   return {
@@ -57,18 +78,13 @@ function getNodeColor(node: Element | null): string | null {
 }
 
 function getPoolCircleOrAnchor(poolIndex: number): Element | null {
-  const poolCircle = document.getElementById(
-    `pool-${poolIndex}`,
-  ) as SVGCircleElement | null
+  const poolCircle = document.getElementById(`pool-${poolIndex}`) as SVGCircleElement | null
   if (poolCircle) return poolCircle
   const anchor = document.getElementById('qv-pool-anchor')
   return anchor
 }
 
-function getDiamondLevelCircles(
-  diamondId: string | number,
-  level: number,
-): SVGCircleElement[] {
+function getDiamondLevelCircles(diamondId: string | number, level: number): SVGCircleElement[] {
   const svg = document.querySelector(`svg[data-diamond-id="${String(diamondId)}"]`)
   if (!svg) return []
   const nodeList = (svg as SVGSVGElement).querySelectorAll(
@@ -96,9 +112,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
 
   const ensureOverlay = useCallback(() => {
     if (!overlayRef.current) {
-      let div = document.getElementById(
-        'animation-overlay',
-      ) as HTMLDivElement | null
+      let div = document.getElementById('animation-overlay') as HTMLDivElement | null
       if (!div) {
         div = document.createElement('div')
         div.id = 'animation-overlay'
@@ -118,9 +132,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
   const step = useCallback(() => {
     setFlights((prev) => {
       const now = performance.now()
-      const remaining = prev.filter(
-        (f) => now < f.startAt + f.delayMs + f.durationMs,
-      )
+      const remaining = prev.filter((f) => now < f.startAt + f.delayMs + f.durationMs)
       return remaining
     })
     rafRef.current = requestAnimationFrame(step)
@@ -145,11 +157,11 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
       const newFlights: Flight[] = []
 
       if (detail.direction === 'toDiamond') {
-        const targets = getDiamondLevelCircles(
-          detail.diamondId,
-          detail.diamondLevel,
-        )
+        const targets = getDiamondLevelCircles(detail.diamondId, detail.diamondLevel)
+        const stagger = staggerFor(count)
         for (let i = 0; i < count; i++) {
+          // Each credit leaves later than the last, so the pool drains gradually.
+          const delayMs = i * stagger
           const poolIndex = detail.poolStartIndex + i
           const targetCircle = targets[i]
           if (!targetCircle) continue
@@ -175,48 +187,42 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
             diamond: { id: detail.diamondId, level: detail.diamondLevel, ai },
             color: detail.color ?? getNodeColor(colorProbe) ?? 'black',
             startAt: now,
-            durationMs: 650,
-            delayMs: i * 60,
+            durationMs: FLIGHT_DURATION_MS,
+            delayMs,
           })
-          // Clear pool circle early (150ms after departure starts)
-          window.setTimeout(
-            () => {
-              window.dispatchEvent(
-                new CustomEvent('qv:anim-pool', {
-                  detail: {
-                    phase: 'end',
-                    direction: 'toDiamond',
-                    poolIndex,
-                  },
-                }),
-              )
-            },
-            150 + i * 60,
-          )
+          // Clear pool circle shortly after this credit departs.
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent('qv:anim-pool', {
+                detail: {
+                  phase: 'end',
+                  direction: 'toDiamond',
+                  poolIndex,
+                },
+              }),
+            )
+          }, CLEAR_DELAY_MS + delayMs)
           // schedule diamond arrival end announcement
-          window.setTimeout(
-            () => {
-              window.dispatchEvent(
-                new CustomEvent('qv:anim-diamond', {
-                  detail: {
-                    phase: 'end',
-                    direction: 'toDiamond',
-                    diamondId: detail.diamondId,
-                    diamondLevel: detail.diamondLevel,
-                    ai,
-                  },
-                }),
-              )
-            },
-            650 + i * 60,
-          )
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent('qv:anim-diamond', {
+                detail: {
+                  phase: 'end',
+                  direction: 'toDiamond',
+                  diamondId: detail.diamondId,
+                  diamondLevel: detail.diamondLevel,
+                  ai,
+                },
+              }),
+            )
+          }, delayMs + FLIGHT_DURATION_MS)
         }
       } else if (detail.direction === 'toPool') {
-        const sources = getDiamondLevelCircles(
-          detail.diamondId,
-          detail.diamondLevel,
-        )
+        const sources = getDiamondLevelCircles(detail.diamondId, detail.diamondLevel)
+        const stagger = staggerFor(count)
         for (let i = 0; i < count; i++) {
+          // Mirrors the outbound trip: one credit returns at a time.
+          const delayMs = i * stagger
           const poolIndex = detail.poolStartIndex + i
           const diamondCircle = sources[i]
           if (!diamondCircle) continue
@@ -242,41 +248,35 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
             diamond: { id: detail.diamondId, level: detail.diamondLevel, ai },
             color: detail.color ?? getNodeColor(colorProbe) ?? 'black',
             startAt: now,
-            durationMs: 650,
-            delayMs: i * 60,
+            durationMs: FLIGHT_DURATION_MS,
+            delayMs,
           })
-          // Clear diamond circle early (150ms after departure starts)
-          window.setTimeout(
-            () => {
-              window.dispatchEvent(
-                new CustomEvent('qv:anim-diamond', {
-                  detail: {
-                    phase: 'end',
-                    direction: 'toPool',
-                    diamondId: detail.diamondId,
-                    diamondLevel: detail.diamondLevel,
-                    ai,
-                  },
-                }),
-              )
-            },
-            150 + i * 60,
-          )
-          // schedule pool arrival end announcement
-          window.setTimeout(
-            () => {
-              window.dispatchEvent(
-                new CustomEvent('qv:anim-pool', {
-                  detail: {
-                    phase: 'end',
-                    direction: 'toPool',
-                    poolIndex,
-                  },
-                }),
-              )
-            },
-            650 + i * 60,
-          )
+          // Clear diamond circle shortly after this credit departs.
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent('qv:anim-diamond', {
+                detail: {
+                  phase: 'end',
+                  direction: 'toPool',
+                  diamondId: detail.diamondId,
+                  diamondLevel: detail.diamondLevel,
+                  ai,
+                },
+              }),
+            )
+          }, CLEAR_DELAY_MS + delayMs)
+          // Pool arrival — staggered, so the pool refills circle by circle.
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent('qv:anim-pool', {
+                detail: {
+                  phase: 'end',
+                  direction: 'toPool',
+                  poolIndex,
+                },
+              }),
+            )
+          }, delayMs + FLIGHT_DURATION_MS)
         }
       }
 
@@ -284,11 +284,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
     }
 
     window.addEventListener('qv:launch-animation', handler as EventListener)
-    return () =>
-      window.removeEventListener(
-        'qv:launch-animation',
-        handler as EventListener,
-      )
+    return () => window.removeEventListener('qv:launch-animation', handler as EventListener)
   }, [])
 
   const elements = useMemo(() => {
@@ -309,9 +305,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ zIndex = 9999 }) => {
         fromRect = poolEl ? getNodeScreenRect(poolEl) : { x: 0, y: 0, r: 4 }
         toRect = diamondEl ? getNodeScreenRect(diamondEl) : fromRect
       } else {
-        fromRect = diamondEl
-          ? getNodeScreenRect(diamondEl)
-          : { x: 0, y: 0, r: 4 }
+        fromRect = diamondEl ? getNodeScreenRect(diamondEl) : { x: 0, y: 0, r: 4 }
         toRect = poolEl ? getNodeScreenRect(poolEl) : fromRect
       }
 
