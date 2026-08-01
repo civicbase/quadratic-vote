@@ -24,12 +24,6 @@ Negative votes cost the same as positive ones: `cost = vote²`.
 npm install quadratic-vote
 ```
 
-`LiquidPool` additionally needs `framer-motion`:
-
-```bash
-npm install framer-motion
-```
-
 ## The shape of it
 
 Everything hangs off one provider. The provider owns the vote state, enforces the
@@ -74,7 +68,8 @@ export default function App() {
 
 - **Provider** — state, budget enforcement, animation dispatch. Required.
 - **Pool** — the credit bank as a grid of circles. The desktop default.
-- **LiquidPool** — the credit bank as a gooey blob. Compact, good for mobile headers.
+- **LiquidPool** — the credit bank as a floating drop of water with satellite
+  droplets. Compact, good for mobile headers. No extra dependencies.
 - **Diamond** — per-question indicator that grows as votes are allocated.
 - **useQuadraticVote** — read `questions`, `credits`, `availableCredits`; call `vote()` and `reset()`.
 - **VoteAnimation** — mounted by the Provider; flies credits between pool and diamonds.

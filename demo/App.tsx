@@ -2,7 +2,7 @@ import { CSSProperties, ReactNode, useEffect, useState } from 'react'
 import QuadraticVote, { Question, useQuadraticVote } from '../src/QuadraticVote'
 import { ThumbsDownIcon, ThumbsUpIcon } from './icons'
 import Toolbar, { PoolKind } from './Toolbar'
-import { Theme, ThemeProvider, useTheme } from './theme'
+import { ThemeProvider, useTheme } from './theme'
 
 /**
  * Above this width the pool sits in a fixed rail on the left, so the question
@@ -24,15 +24,7 @@ function useIsWide() {
   return isWide
 }
 
-function PoolRail({
-  poolKind,
-  liquidShape,
-  onLiquidShapeChange,
-}: {
-  poolKind: PoolKind
-  liquidShape: 'circle' | 'rect'
-  onLiquidShapeChange: (shape: 'circle' | 'rect') => void
-}) {
+function PoolRail({ poolKind }: { poolKind: PoolKind }) {
   const { theme } = useTheme()
 
   return (
@@ -49,35 +41,7 @@ function PoolRail({
           circleColor={theme.poolCircle}
         />
       ) : (
-        <QuadraticVote.LiquidPool
-          shape={liquidShape}
-          size={140}
-          width={180}
-          height={140}
-          liquidScale={0.5}
-          inkColor={theme.liquidInk}
-          backgroundColor={theme.liquidBackground}
-          blurPx={1}
-          contrast={10}
-          mixBlendMode='normal'
-          burstCount={2}
-          dryOutMs={0}
-        />
-      )}
-
-      {poolKind === 'liquid' && (
-        <div style={{ display: 'flex', gap: 6 }}>
-          {(['circle', 'rect'] as const).map((shape) => (
-            <button
-              key={shape}
-              type='button'
-              onClick={() => onLiquidShapeChange(shape)}
-              style={chipStyle(theme, liquidShape === shape)}
-            >
-              {shape === 'circle' ? 'Circle' : 'Rect'}
-            </button>
-          ))}
-        </div>
+        <QuadraticVote.LiquidPool size={140} inkColor={theme.liquidInk} droplets={7} />
       )}
     </div>
   )
@@ -152,11 +116,8 @@ function Container() {
   const { theme } = useTheme()
   const isWide = useIsWide()
   const [poolKind, setPoolKind] = useState<PoolKind>('grid')
-  const [liquidShape, setLiquidShape] = useState<'circle' | 'rect'>('circle')
 
-  const rail = (
-    <PoolRail poolKind={poolKind} liquidShape={liquidShape} onLiquidShapeChange={setLiquidShape} />
-  )
+  const rail = <PoolRail poolKind={poolKind} />
 
   return (
     <div style={{ ...layout.page, color: theme.text }}>
@@ -187,19 +148,6 @@ function Container() {
       <Toolbar poolKind={poolKind} onPoolKindChange={setPoolKind} />
     </div>
   )
-}
-
-function chipStyle(theme: Theme, active: boolean): CSSProperties {
-  return {
-    padding: '5px 12px',
-    borderRadius: 999,
-    border: `1px solid ${active ? 'transparent' : theme.border}`,
-    background: active ? theme.accent : 'transparent',
-    color: active ? '#fff' : theme.textMuted,
-    fontSize: 12,
-    cursor: 'pointer',
-    transition: 'background 150ms ease, color 150ms ease',
-  }
 }
 
 /**

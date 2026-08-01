@@ -1,77 +1,62 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { LiquidPool } from '../src/QuadraticVote'
-import { CreditsReadout, Panel, PlainBallot, Sandbox, shortQuestions } from './harness'
+import { Ballot, CreditsReadout, Panel, Sandbox, shortQuestions } from './harness'
 
 /**
- * `LiquidPool` is the compact alternative to `Pool`: the budget as a gooey blob
- * that shrinks as credits are spent and splashes droplets on every vote.
+ * `LiquidPool` renders the budget as a floating drop of water with satellite
+ * droplets orbiting it, rather than a grid of circles.
  *
- * It needs `framer-motion` as a peer dependency:
+ * The blobs are plain SVG circles fused by a gooey filter — `feGaussianBlur`
+ * smears neighbouring shapes together and `feColorMatrix` pushes the blurred
+ * alpha back to a hard edge. Because that works on the alpha channel it needs no
+ * opaque backdrop, and the filter region extends past the component box, so
+ * droplets and splashes are never clipped.
  *
- * ```bash
- * npm install framer-motion
- * ```
+ * `size` reserves a square footprint for layout; the liquid is free to drift
+ * outside it.
  *
- * The gooey effect is a blur plus a contrast filter, so it needs an opaque
- * backdrop. The default `mixBlendMode: 'screen'` halos on light backgrounds —
- * use `'normal'` if you are not placing it on a dark surface.
+ * Spend and refund credits in the ballot beside it to watch the pool drain and
+ * refill — droplets dry out one at a time as the budget runs down, and each credit
+ * leaving or arriving throws a splash off the surface facing its diamond.
  */
 const meta = {
   title: 'Components/LiquidPool',
   component: LiquidPool,
   parameters: { layout: 'padded' },
   argTypes: {
-    shape: { control: 'inline-radio', options: ['circle', 'rect'] },
     size: {
-      control: { type: 'range', min: 40, max: 240, step: 4 },
-      description: 'Only used when `shape="circle"`.',
+      control: { type: 'range', min: 60, max: 260, step: 4 },
+      description: 'Reserved layout footprint. The liquid may drift beyond it.',
     },
-    width: {
-      control: { type: 'range', min: 60, max: 320, step: 4 },
-      description: 'Only used when `shape="rect"`.',
-    },
-    height: {
-      control: { type: 'range', min: 60, max: 320, step: 4 },
-      description: 'Only used when `shape="rect"`.',
-    },
-    backgroundColor: { control: 'color' },
     inkColor: { control: 'color' },
-    blurPx: { control: { type: 'range', min: 0, max: 24, step: 1 } },
-    contrast: { control: { type: 'range', min: 1, max: 40, step: 1 } },
-    mixBlendMode: { control: 'select', options: ['screen', 'normal', 'lighten', 'plus-lighter'] },
-    liquidScale: { control: { type: 'range', min: 0.4, max: 2, step: 0.05 } },
-    burstCount: { control: { type: 'range', min: 1, max: 6, step: 1 } },
-    dryOutMs: { control: { type: 'range', min: 0, max: 3000, step: 100 } },
-    coreScaleMode: { control: 'inline-radio', options: ['available', 'used'] },
-    coreScaleMin: { control: { type: 'range', min: 0, max: 1, step: 0.05 } },
-    coreScaleMax: { control: { type: 'range', min: 0, max: 2, step: 0.05 } },
+    droplets: { control: { type: 'range', min: 0, max: 14, step: 1 } },
+    spread: { control: { type: 'range', min: 0, max: 1.2, step: 0.02 } },
+    wobble: { control: { type: 'range', min: 0, max: 1, step: 0.05 } },
+    driftSeconds: { control: { type: 'range', min: 3, max: 40, step: 1 } },
+    viscosity: { control: { type: 'range', min: 0.02, max: 0.3, step: 0.01 } },
+    settleMs: { control: { type: 'range', min: 100, max: 3000, step: 100 } },
   },
   args: {
-    shape: 'circle',
-    size: 96,
-    width: 140,
-    height: 140,
-    backgroundColor: '#000',
-    inkColor: '#fff',
-    blurPx: 8,
-    contrast: 18,
-    mixBlendMode: 'screen',
-    liquidScale: 1,
-    burstCount: 1,
-    dryOutMs: 0,
-    coreScaleMode: 'available',
-    coreScaleMin: 0.6,
-    coreScaleMax: 1,
+    size: 120,
+    inkColor: '#ffffff',
+    droplets: 6,
+    spread: 0.42,
+    wobble: 0.55,
+    driftSeconds: 14,
+    viscosity: 0.16,
+    settleMs: 900,
   },
   render: (args) => (
     <Sandbox credits={36} questions={shortQuestions}>
-      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 64, alignItems: 'flex-start' }}>
         <Panel title='Liquid pool'>
-          <LiquidPool {...args} />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+            <LiquidPool {...args} />
+          </div>
           <CreditsReadout />
         </Panel>
         <div style={{ flex: 1 }}>
-          <PlainBallot />
+          <Ballot />
         </div>
       </div>
     </Sandbox>
@@ -81,65 +66,81 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Library defaults — the original CodePen look: white goo on black, 96px circle. */
-export const Default: Story = {}
-
-/** `shape="rect"` uses `width`/`height` instead of `size`. */
-export const Rectangle: Story = {
-  args: { shape: 'rect', width: 180, height: 120 },
-}
-
 /**
- * On a light surface, `mixBlendMode: 'screen'` produces a halo. Switch to
- * `'normal'` and give the blob an opaque background of its own.
+ * Defaults. White liquid, so this reads best on a dark surface — set
+ * `inkColor` to something darker for a light page.
  */
-export const OnLightBackground: Story = {
-  args: {
-    mixBlendMode: 'normal',
-    backgroundColor: '#EFF6FF',
-    inkColor: '#2563EB',
-  },
+export const Default: Story = {
+  args: { inkColor: '#0F172A' },
+}
+
+/** A single drop with nothing orbiting it. */
+export const NoDroplets: Story = {
+  args: { droplets: 0, inkColor: '#0F172A' },
+}
+
+/** A dense cluster. Droplets stay between 15% and 35% of the main blob. */
+export const ManyDroplets: Story = {
+  args: { droplets: 12, spread: 0.6, inkColor: '#2563EB' },
 }
 
 /**
- * `blurPx` and `contrast` control how gooey the metaballs look. Low blur plus low
- * contrast gives crisp, separate droplets; high values melt them together.
+ * `wobble` controls how far the main blob's lobes push out of round. At `0` it
+ * settles into a near-perfect circle; higher values give it a lopsided,
+ * water-drop silhouette.
  */
-export const CrispDroplets: Story = {
-  args: { blurPx: 3, contrast: 8, backgroundColor: '#111827', inkColor: '#38BDF8' },
+export const PerfectlyRound: Story = {
+  args: { wobble: 0, inkColor: '#0F172A' },
 }
 
-/** `burstCount` multiplies the droplets thrown per credit — 3 is showy. */
-export const DramaticSplash: Story = {
-  args: { burstCount: 3, size: 140, backgroundColor: '#0F172A', inkColor: '#FDE68A' },
+/** Maximum irregularity — the drop never quite settles into a shape. */
+export const VeryOrganic: Story = {
+  args: { wobble: 1, droplets: 8, inkColor: '#7C3AED' },
 }
 
 /**
- * `coreScaleMode: 'used'` inverts the behaviour — the blob *grows* as credits are
- * spent instead of draining. Useful when you want to show commitment rather than budget.
+ * `viscosity` is how readily the liquid fuses. Low values keep the droplets
+ * distinct; high values pull everything into one mass.
  */
-export const FillsAsYouSpend: Story = {
-  args: {
-    coreScaleMode: 'used',
-    coreScaleMin: 0.3,
-    coreScaleMax: 1.1,
-    backgroundColor: '#111827',
-    inkColor: '#34D399',
-  },
+export const Runny: Story = {
+  args: { viscosity: 0.04, droplets: 8, inkColor: '#0EA5E9' },
+}
+
+/** Thick and syrupy — droplets merge into the main blob from further away. */
+export const Thick: Story = {
+  args: { viscosity: 0.22, droplets: 8, inkColor: '#059669' },
+}
+
+/** Slow, barely-moving liquid. Raise `driftSeconds` to calm it down. */
+export const BarelyMoving: Story = {
+  args: { driftSeconds: 34, inkColor: '#0F172A' },
 }
 
 /**
- * `dryOutMs` holds a drying animation before the pool goes blank at zero credits.
- * Spend everything to see it.
+ * `settleMs` governs how quickly the pool reacts to a vote. Long settle times
+ * make spending credits read as the liquid slowly draining away.
  */
-export const DryOut: Story = {
-  args: { dryOutMs: 1200, backgroundColor: '#111827', inkColor: '#F472B6' },
+export const SlowToSettle: Story = {
+  args: { settleMs: 2500, inkColor: '#DB2777', droplets: 8 },
 }
 
 /**
- * The size the mobile header in Civicbase uses: a 96px circle, sized to sit in a
- * fixed top bar. See **Recipes / Mobile Header**.
+ * The size Civicbase uses in its mobile header. See **Recipes / Mobile Header**.
  */
 export const MobileHeaderSize: Story = {
-  args: { shape: 'circle', size: 96, backgroundColor: '#0B1120', inkColor: '#E2E8F0' },
+  args: { size: 72, droplets: 5, inkColor: '#E2E8F0' },
+  render: (args) => (
+    <Sandbox credits={36} questions={shortQuestions}>
+      <div
+        style={{
+          background: '#0B1120',
+          borderRadius: 16,
+          padding: '24px 32px',
+          display: 'inline-flex',
+        }}
+      >
+        <LiquidPool {...args} />
+      </div>
+    </Sandbox>
+  ),
 }

@@ -1,51 +1,105 @@
 import React from 'react'
 import '@testing-library/jest-dom/vitest'
-import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import QuadraticVote from '../QuadraticVote'
 import { questions } from './test-utils'
 
 describe('LiquidPool Component', () => {
-  const Wrapper = ({
-    credits,
-    children,
-  }: {
-    credits: number
-    children: React.ReactNode
-  }) => (
+  afterEach(() => {
+    cleanup()
+  })
+
+  const Wrapper = ({ credits, children }: { credits: number; children: React.ReactNode }) => (
     <QuadraticVote.Provider credits={credits} questions={questions}>
       {children}
     </QuadraticVote.Provider>
   )
 
-  it('renders an SVG with a single VoteAnimation anchor (no per-credit pool circles)', () => {
+  it('renders the liquid as gooey-filtered blobs rather than a clipped box', () => {
     const { container } = render(
       <Wrapper credits={100}>
         <QuadraticVote.LiquidPool />
       </Wrapper>,
     )
 
-    const el = container.querySelector('[data-liquid-pool="true"]')
+    const el = container.querySelector('[data-liquid-pool="true"]') as HTMLElement
     expect(el).toBeInTheDocument()
 
-    const anchor = container.querySelector('#qv-pool-anchor')
-    expect(anchor).toBeInTheDocument()
+    // The old implementation clipped to a circle/rect, which cut the animation off.
+    expect(el.style.overflow).not.toBe('hidden')
 
-    // LiquidPool should not generate per-credit pool circles (those belong to Pool).
-    expect(container.querySelector('#pool-0')).toBeNull()
+    const svg = el.querySelector('svg') as SVGSVGElement
+    expect(svg.style.overflow).toBe('visible')
+
+    // feColorMatrix pushes the blurred alpha back to a hard edge — without it
+    // the blobs stay a soft smudge instead of fusing.
+    expect(el.querySelector('filter feGaussianBlur')).toBeInTheDocument()
+    expect(el.querySelector('filter feColorMatrix')).toBeInTheDocument()
   })
 
-  it('supports rectangle shape', () => {
+  it('declares its landing colour so returning credits know what to fade into', () => {
     const { container } = render(
       <Wrapper credits={100}>
-        <QuadraticVote.LiquidPool shape='rect' width={140} height={50} />
+        <QuadraticVote.LiquidPool inkColor='#38BDF8' />
       </Wrapper>,
     )
 
     const el = container.querySelector('[data-liquid-pool="true"]')
-    expect(el).toBeInTheDocument()
+    expect(el).toHaveAttribute('data-circle-color', '#38BDF8')
+  })
+
+  it('gives every credit a flight anchor, spread across the blob and its droplets', () => {
+    const credits = 25
+    const { container } = render(
+      <Wrapper credits={credits}>
+        <QuadraticVote.LiquidPool droplets={4} />
+      </Wrapper>,
+    )
+
+    // VoteAnimation looks these up by id, so one is needed per credit.
+    for (let i = 0; i < credits; i++) {
+      expect(container.querySelector(`#pool-${i}`)).toBeInTheDocument()
+    }
+    expect(container.querySelector('#qv-pool-anchor')).toBeInTheDocument()
+
+    // Anchors sit inside the group they belong to so they move with it. Credits
+    // should not all leave from the same spout.
+    const groups = Array.from(container.querySelectorAll('#qv-pool-anchor'))
+      .map((anchor) => anchor.parentElement)
+      .filter(Boolean)
+    expect(groups).toHaveLength(1)
+
+    const mainGroup = groups[0] as HTMLElement
+    const fromMain = mainGroup.querySelectorAll('[id^="pool-"]').length
+    expect(fromMain).toBeGreaterThan(0)
+    expect(fromMain).toBeLessThan(credits)
+  })
+
+  it('drops its droplets when asked for none', () => {
+    const { container } = render(
+      <Wrapper credits={25}>
+        <QuadraticVote.LiquidPool droplets={0} />
+      </Wrapper>,
+    )
+
+    // Only the main blob group remains, so every credit leaves from it.
+    const anchor = container.querySelector('#qv-pool-anchor') as HTMLElement
+    const mainGroup = anchor.parentElement as HTMLElement
+    expect(mainGroup.querySelectorAll('[id^="pool-"]').length).toBe(25)
+  })
+
+  it('sizes the flight anchors so credits do not fly out as zero-width dots', () => {
+    const { container } = render(
+      <Wrapper credits={9}>
+        <QuadraticVote.LiquidPool />
+      </Wrapper>,
+    )
+
+    // VoteAnimation derives the flying credit's radius from this box.
+    const anchor = container.querySelector('#pool-0') as HTMLElement
+    expect(anchor.style.width).toBe('10px')
+    expect(anchor.style.height).toBe('10px')
   })
 })
-
-

@@ -31,12 +31,6 @@
 npm install quadratic-vote
 ```
 
-If you use `<QuadraticVote.LiquidPool />`, you also need:
-
-```bash
-npm install framer-motion
-```
-
 or
 
 ```bash
@@ -192,27 +186,39 @@ Displays the credit pool showing available and used credits with animated transi
 
 ### `<QuadraticVote.LiquidPool>`
 
-Compact alternative to `<Pool>` designed for mobile: a gooey “liquid loader” style pool (based on the referenced CodePen), plus a single pool anchor so credits always exit/return from the same spot.
+Compact alternative to `<Pool>`, designed for mobile: the budget as a floating drop
+of water with satellite droplets orbiting it. The droplets shrink and disappear one
+by one as credits are spent, and the whole thing dries out at zero.
+
+The blobs are plain SVG circles fused by a gooey filter — `feGaussianBlur` smears
+neighbouring shapes together and `feColorMatrix` pushes the blurred alpha back to a
+hard edge. That works on the alpha channel, so it needs no opaque backdrop, and the
+filter region extends past the component box, so droplets and splashes are never
+clipped.
+
+`size` reserves a square footprint for layout; the liquid drifts freely outside it.
 
 ```tsx
-<QuadraticVote.LiquidPool shape='circle' size={140} inkColor='#fff' backgroundColor='#000' />
+<QuadraticVote.LiquidPool size={140} inkColor='#38BDF8' droplets={7} />
 ```
 
-| Prop              | Type                    | Default       | Description                                     |
-| ----------------- | ----------------------- | ------------- | ----------------------------------------------- |
-| `shape`           | `'circle' \| 'rect'`    | `'circle'`    | Pool container shape                            |
-| `size`            | `number`                | `84`          | Circle diameter (px)                            |
-| `width`           | `number`                | `120`         | Rect width (px)                                 |
-| `height`          | `number`                | `140`         | Rect height (px)                                |
-| `backgroundColor` | `string`                | `'grey'`      | Empty/background color                          |
-| `inkColor`        | `string`                | `'#fff'`      | Blob/droplet color                              |
-| `blurPx`          | `number`                | `8`           | Blur amount in px                               |
-| `contrast`        | `number`                | `18`          | Contrast multiplier                             |
-| `burstCount`      | `number`                | `4`           | Droplets emitted on each credit transfer event  |
-| `dryOutMs`        | `number`                | `0`           | Dry-out duration before switching to blank (ms) |
-| `coreScaleMode`   | `'available' \| 'used'` | `'available'` | Which credits drive the center blob size        |
-| `coreScaleMin`    | `number`                | `0.6`         | Min center blob scale                           |
-| `coreScaleMax`    | `number`                | `1`           | Max center blob scale                           |
+| Prop           | Type     | Default     | Description                                           |
+| -------------- | -------- | ----------- | ----------------------------------------------------- |
+| `size`         | `number` | `120`       | Reserved layout footprint (px). Liquid may exceed it. |
+| `inkColor`     | `string` | `'#ffffff'` | Colour of the liquid                                  |
+| `droplets`     | `number` | `6`         | Satellite droplets at full credits                    |
+| `spread`       | `number` | `0.42`      | How far droplets orbit past the blob, × `size`        |
+| `wobble`       | `number` | `0.55`      | Outline irregularity: `0` round, `1` very lumpy       |
+| `driftSeconds` | `number` | `14`        | Seconds per drift cycle. Higher is slower             |
+| `viscosity`    | `number` | `0.16`      | How readily liquid fuses, × the blob radius           |
+| `settleMs`     | `number` | `900`       | How slowly the pool drains and refills                |
+
+Droplets range from 15% to 35% of the main blob. Pushing `viscosity` much higher
+dissolves them — the goo threshold erases any shape much smaller than the blur.
+
+Motion runs on a single animation frame loop that writes SVG attributes directly, so
+a frame costs no React render. It idles while the tab is hidden and freezes for
+`prefers-reduced-motion`.
 
 ### `<QuadraticVote.Diamond>`
 

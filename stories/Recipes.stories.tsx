@@ -54,7 +54,7 @@ function MobileHeader() {
 
   return (
     <header style={recipeStyles.mobileHeader}>
-      <LiquidPool shape='circle' size={72} backgroundColor='#0B1120' inkColor='#E2E8F0' />
+      <LiquidPool size={72} droplets={5} inkColor='#0F172A' />
       <div>
         <p style={recipeStyles.mobileHeaderValue}>
           {availableCredits}
