@@ -66,13 +66,17 @@ function staggerFor(count: number) {
 
 /**
  * Fraction of the trip after which a credit takes on its landing colour, and how
- * long that cross-fade lasts. A credit returning from a diamond keeps the vote
- * colour (green/red) the whole way and only becomes a pool credit at the end.
+ * long that cross-fade lasts. A credit returning from a diamond carries the vote
+ * colour (green/red) for the first half of the journey, then turns into a pool
+ * credit over the second half — so it has already arrived as one by the time it
+ * merges. Works the same against the grid Pool and the LiquidPool, since both
+ * declare their landing colour.
+ *
+ * The fade must finish before the credit is removed at the end of its flight, or
+ * it lands mid-blend: 0.5 * 650ms + 200ms = 525ms, comfortably inside 650ms.
  */
-// The fade must finish before the credit is removed at the end of its flight,
-// or it lands mid-blend: 0.75 * 650ms + 130ms = 618ms, comfortably inside 650ms.
-const LANDING_COLOR_AT = 0.75
-const COLOR_FADE_MS = 130
+const LANDING_COLOR_AT = 0.5
+const COLOR_FADE_MS = 200
 
 function getNodeScreenRect(node: Element) {
   const bbox = node.getBoundingClientRect()

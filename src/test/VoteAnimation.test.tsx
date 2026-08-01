@@ -241,6 +241,25 @@ describe('VoteAnimation', () => {
       colors.forEach((color) => expect(color).toBe(NEGATIVE))
     })
 
+    it('cross-fades over a window short enough to finish before touchdown', async () => {
+      render(<Harness />)
+
+      await vote(1)
+      await vote(1)
+      await settleArrivals()
+
+      const before = new Set(flightNodes())
+      await act(async () => launchReturn(2, 3))
+      const flight = flightNodes().find((node) => !before.has(node)) as HTMLElement
+
+      // The switch happens half way through a 650ms flight, so the fade has to
+      // fit in the remaining 325ms — otherwise the credit is removed mid-blend
+      // and lands as neither the vote colour nor the pool colour.
+      const match = flight.style.transition.match(/background-color (\d+)ms/)
+      expect(match).not.toBeNull()
+      expect(Number(match?.[1])).toBeLessThan(325)
+    })
+
     it('sends credits out in the pool colour', async () => {
       render(<Harness />)
 
