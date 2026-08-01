@@ -54,6 +54,8 @@ export default defineConfig({
         'build/**/*',
         'deploy/**/*',
         '.storybook/**/*',
+        'stories/**/*',
+        'demo/**/*',
         'public/**/*',
         'src/**/index.ts',
         '.eslintrc.cjs',

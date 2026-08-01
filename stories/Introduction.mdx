@@ -1,0 +1,97 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title='Introduction' />
+
+# Quadratic Vote
+
+A React component library for quadratic voting. Voters spend **credits** to buy
+**votes**, and the cost grows quadratically — so expressing a strong preference
+costs real budget.
+
+| Votes on one question | Credits spent |
+| --------------------- | ------------- |
+| 1                     | 1             |
+| 2                     | 4             |
+| 3                     | 9             |
+| 5                     | 25            |
+| 10                    | 100           |
+
+Negative votes cost the same as positive ones: `cost = vote²`.
+
+## Install
+
+```bash
+npm install quadratic-vote
+```
+
+`LiquidPool` additionally needs `framer-motion`:
+
+```bash
+npm install framer-motion
+```
+
+## The shape of it
+
+Everything hangs off one provider. The provider owns the vote state, enforces the
+credit budget, and dispatches the animation events the pools and diamonds listen to.
+
+```tsx
+import QuadraticVote, { useQuadraticVote } from 'quadratic-vote'
+
+const questions = [
+  { id: 'transit', question: 'Expand the light rail', vote: 0 },
+  { id: 'parks', question: 'Build a riverfront park', vote: 0 },
+]
+
+function Ballot() {
+  const { questions, vote } = useQuadraticVote()
+
+  return questions.map((q) => (
+    <div key={q.id}>
+      <p>{q.question}</p>
+      <QuadraticVote.Diamond id={q.id} />
+      <button disabled={q.isDisabledDown} onClick={() => vote(q.id, -1)}>
+        −
+      </button>
+      <button disabled={q.isDisabledUp} onClick={() => vote(q.id, 1)}>
+        +
+      </button>
+    </div>
+  ))
+}
+
+export default function App() {
+  return (
+    <QuadraticVote.Provider credits={100} questions={questions}>
+      <QuadraticVote.Pool />
+      <Ballot />
+    </QuadraticVote.Provider>
+  )
+}
+```
+
+## What's in the box
+
+- **Provider** — state, budget enforcement, animation dispatch. Required.
+- **Pool** — the credit bank as a grid of circles. The desktop default.
+- **LiquidPool** — the credit bank as a gooey blob. Compact, good for mobile headers.
+- **Diamond** — per-question indicator that grows as votes are allocated.
+- **useQuadraticVote** — read `questions`, `credits`, `availableCredits`; call `vote()` and `reset()`.
+- **VoteAnimation** — mounted by the Provider; flies credits between pool and diamonds.
+
+## Things worth knowing before you build
+
+- `credits` must be **between 4 and 225**. The Provider throws outside that range.
+- The Provider seeds its state from `questions` **once**. To change the ballot or
+  the budget after mount, remount it with a `key`.
+- `vote()` is a **delta**, not an absolute: `vote(id, 1)` adds one vote, `vote(id, -1)`
+  removes one. A vote that would exceed the budget is silently ignored — use
+  `isDisabledUp` / `isDisabledDown` to disable your buttons.
+- The pools and diamonds coordinate through `qv:*` window events and `data-*`
+  attributes on the rendered SVG. Rendering more than one pool at a time will make
+  them compete for the same flying credits.
+- Nothing in the library detects viewport size. Choosing `Pool` on desktop and
+  `LiquidPool` on mobile is your app's decision — see **Recipes**.
+
+Browse **Getting Started** for a full working ballot, **Components** for the
+per-component prop tables, and **Recipes** for layout patterns taken from production use.

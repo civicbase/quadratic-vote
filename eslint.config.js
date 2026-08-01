@@ -7,7 +7,15 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['dist', 'coverage', 'node_modules', '*.config.js', '*.config.ts', '.eslintrc.*'],
+    ignores: [
+      'dist',
+      'coverage',
+      'storybook-static',
+      'node_modules',
+      '*.config.js',
+      '*.config.ts',
+      '.eslintrc.*',
+    ],
   },
   js.configs.recommended,
   {
@@ -34,6 +42,19 @@ export default [
       'no-undef': 'off', // TypeScript handles this
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // Storybook files are documentation, not library code. Story modules export
+    // config objects alongside components, which is exactly what react-refresh warns about.
+    files: [
+      'stories/**/*.{ts,tsx}',
+      '.storybook/**/*.{ts,tsx}',
+      'demo/theme.tsx',
+      'demo/Toolbar.tsx',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ]

@@ -5,6 +5,9 @@
 src
 demo
 coverage
+stories
+.storybook
+storybook-static
 
 # Config files
 *.config.*

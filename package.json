@@ -69,6 +69,9 @@
     "test:run": "vitest run",
     "semantic-release": "semantic-release",
     "dev": "vite demo",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "type-check:storybook": "tsc --noEmit -p tsconfig.storybook.json",
     "prepublishOnly": "npm run lint && npm run type-check && npm run test:run && npm run build",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
@@ -76,6 +79,8 @@
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "@storybook/addon-docs": "10.5.5",
+    "@storybook/react-vite": "10.5.5",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.10.2",
@@ -100,6 +105,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "semantic-release": "^24.2.0",
+    "storybook": "10.5.5",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
     "vite-plugin-dts": "^4.3.0",

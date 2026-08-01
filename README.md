@@ -299,6 +299,22 @@ npm run dev           # Run demo app
 - **[Live Demo on CodeSandbox](https://codesandbox.io/s/quadratic-vote-nyk9nx)** - Interactive example
 - See `/demo` directory for a complete implementation
 
+## 📕 Storybook
+
+Every component has interactive documentation with live prop controls, plus layout
+recipes (desktop sidebar, mobile `LiquidPool` header, headless usage).
+
+```bash
+npm run storybook             # Dev server on http://localhost:6006
+npm run build-storybook       # Static build in storybook-static/
+npm run type-check:storybook  # Type-check stories only
+```
+
+Stories live in `/stories` and import from `src` directly, so the docs always
+reflect the working tree. They are documentation-only — `package.json#files`
+limits the published tarball to `dist`, and the library build and `npm run type-check`
+never see them.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting a PR.

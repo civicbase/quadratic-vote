@@ -1,0 +1,16 @@
+{
+  // Storybook is type-checked separately from the library so that the release
+  // path (`tsconfig.json` -> `npm run type-check` -> `prepublishOnly`) never
+  // depends on documentation code.
+  //
+  // Storybook's packages ship `exports` maps, which the library's classic
+  // `moduleResolution: "Node"` cannot read. Only the stories opt into "Bundler".
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["stories", ".storybook"],
+  "references": []
+}
