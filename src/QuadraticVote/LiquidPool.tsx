@@ -207,16 +207,37 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
   }
 
   /**
-   * Credits leave from the main blob most of the time and from a droplet every
-   * so often, so the pool does not look like a single spout. Anchors live
-   * inside the group they belong to, so they move with it for free.
+   * Which part of the liquid each credit flies to and from.
+   *
+   * A credit is tied to whatever visibly changes when it moves. Most of them
+   * only make the main blob a little bigger or smaller, so they use the main
+   * blob. But a handful sit exactly on the threshold where a droplet appears or
+   * dries up — those use that droplet, so a returning credit lands on the spot
+   * the new droplet forms at rather than flying to the centre while the droplet
+   * pops up somewhere else.
+   *
+   * Droplet `k` is present once `dropletCount * fill > k`, and a credit at pool
+   * index `p` leaves the pool holding `credits - p` available, so the crossing
+   * happens at `p = credits - credits * (k + 0.5) / dropletCount`.
+   *
+   * Anchors live inside the group they belong to, so they track it for free.
    */
   const anchorGroups = useMemo(() => {
     const groups: number[][] = Array.from({ length: dropletCount + 1 }, () => [])
+
+    const dropletForIndex = new Map<number, number>()
+    for (let k = 0; k < dropletCount; k++) {
+      const availableWhenAppearing = (credits * (k + 0.5)) / dropletCount
+      const index = Math.round(credits - availableWhenAppearing)
+      const clamped = Math.min(credits - 1, Math.max(0, index))
+      // Two droplets can round onto the same credit when there are more
+      // droplets than credits; first one wins, the other keeps the main blob.
+      if (!dropletForIndex.has(clamped)) dropletForIndex.set(clamped, k)
+    }
+
     for (let i = 0; i < credits; i++) {
-      const useDroplet = dropletCount > 0 && i % 5 === 2
-      const group = useDroplet ? 1 + (Math.floor(i / 5) % dropletCount) : 0
-      groups[group].push(i)
+      const droplet = dropletForIndex.get(i)
+      groups[droplet === undefined ? 0 : droplet + 1].push(i)
     }
     return groups
   }, [credits, dropletCount])
@@ -327,12 +348,12 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
           el.setAttribute('cy', String(cy))
           el.setAttribute('r', String(Math.max(0, satR)))
         }
-        // A dried-out droplet parks on the main blob, so a credit never appears
-        // to fly out of empty space.
+        // The anchor holds its orbit even while the droplet is dried up, so a
+        // returning credit flies to the point the droplet is about to form at
+        // and the two meet. Parking it on the main blob instead would send the
+        // credit to the centre and pop the droplet up somewhere else.
         if (anchor) {
-          const ax = presence > 0.05 ? cx : centre
-          const ay = presence > 0.05 ? cy : centre
-          anchor.style.transform = `translate(${ax - ANCHOR_PX / 2}px, ${ay - ANCHOR_PX / 2}px)`
+          anchor.style.transform = `translate(${cx - ANCHOR_PX / 2}px, ${cy - ANCHOR_PX / 2}px)`
         }
       }
 

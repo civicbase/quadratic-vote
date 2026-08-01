@@ -77,6 +77,44 @@ describe('LiquidPool Component', () => {
     expect(fromMain).toBeLessThan(credits)
   })
 
+  it('ties each droplet to the credit whose return makes it appear', () => {
+    const credits = 36
+    const droplets = 6
+    const { container } = render(
+      <Wrapper credits={credits}>
+        <QuadraticVote.LiquidPool droplets={droplets} />
+      </Wrapper>,
+    )
+
+    // Droplet k appears once `droplets * fill > k`, and pool index p leaves
+    // `credits - p` available, so the crossing sits at
+    // p = credits - credits * (k + 0.5) / droplets. For 36 credits and 6
+    // droplets that is every sixth index, offset by three.
+    const mainGroup = (container.querySelector('#qv-pool-anchor') as HTMLElement)
+      .parentElement as HTMLElement
+    const dropletIndices: number[] = []
+    for (let i = 0; i < credits; i++) {
+      const anchor = container.querySelector(`#pool-${i}`) as HTMLElement
+      if (!mainGroup.contains(anchor)) dropletIndices.push(i)
+    }
+
+    expect(dropletIndices).toEqual([3, 9, 15, 21, 27, 33])
+  })
+
+  it('gives every droplet its own anchor group', () => {
+    const { container } = render(
+      <Wrapper credits={36}>
+        <QuadraticVote.LiquidPool droplets={6} />
+      </Wrapper>,
+    )
+
+    // Each droplet gets its own group, so a returning credit has somewhere to
+    // fly to even before that droplet has formed.
+    const anchorLayer = (container.querySelector('#qv-pool-anchor') as HTMLElement).parentElement
+      ?.parentElement as HTMLElement
+    expect(anchorLayer.children).toHaveLength(7)
+  })
+
   it('drops its droplets when asked for none', () => {
     const { container } = render(
       <Wrapper credits={25}>
