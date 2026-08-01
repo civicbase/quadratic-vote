@@ -104,6 +104,20 @@ function getPoolCircleOrAnchor(poolIndex: number): Element | null {
 }
 
 /**
+ * Pool fills from index 0, but with `reverse` it fills from the far end. The
+ * launch payload always counts credits up from 0, so map that to the circle
+ * that is really changing — otherwise a reversed pool animates the wrong end
+ * and its circles never get held for the staggered drain.
+ */
+function toPoolCircleIndex(logicalIndex: number): number {
+  const reversed = document.querySelector('svg[data-pool="true"][data-reverse="true"]')
+  if (!reversed) return logicalIndex
+  const total = reversed.querySelectorAll('circle').length
+  if (!total) return logicalIndex
+  return total - 1 - logicalIndex
+}
+
+/**
  * The colour a credit ends up as once it has settled back into the pool. Pool
  * and LiquidPool both declare it, so we do not have to guess which circle is
  * currently free — every circle in range is showing the spent colour mid-flight.
@@ -209,7 +223,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
         for (let i = 0; i < count; i++) {
           // Each credit leaves later than the last, so the pool drains gradually.
           const delayMs = i * stagger
-          const poolIndex = detail.poolStartIndex + i
+          const poolIndex = toPoolCircleIndex(detail.poolStartIndex + i)
           const targetCircle = targets[i]
           if (!targetCircle) continue
           const ai = parseInt(targetCircle.getAttribute('data-ai') || '0', 10)
@@ -275,7 +289,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
           // Credits left the pool in ascending index order, so filling the freed
           // block back to front makes the first circle out the last one in.
           const slot = returnOrder === 'first-out-last-in' ? count - 1 - i : i
-          const poolIndex = detail.poolStartIndex + slot
+          const poolIndex = toPoolCircleIndex(detail.poolStartIndex + slot)
           const diamondCircle = sources[i]
           if (!diamondCircle) continue
           const ai = parseInt(diamondCircle.getAttribute('data-ai') || '0', 10)
