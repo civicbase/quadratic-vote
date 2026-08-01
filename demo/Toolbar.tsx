@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useState } from 'react'
 import { useQuadraticVote } from '../src/QuadraticVote'
-import { MoonIcon, ResetIcon, SunIcon } from './icons'
+import { DesktopIcon, MoonIcon, PhoneIcon, ResetIcon, SunIcon, TabletIcon } from './icons'
 import { useTheme } from './theme'
 
 export type PoolKind = 'grid' | 'liquid'
@@ -52,9 +52,9 @@ export default function Toolbar({
           value={device}
           onChange={onDeviceChange}
           options={[
-            { value: 'mobile', label: 'Mobile' },
-            { value: 'tablet', label: 'Tablet' },
-            { value: 'desktop', label: 'Desktop' },
+            { value: 'mobile', label: 'Mobile', icon: <PhoneIcon /> },
+            { value: 'tablet', label: 'Tablet', icon: <TabletIcon /> },
+            { value: 'desktop', label: 'Desktop', icon: <DesktopIcon /> },
           ]}
         />
 
@@ -87,7 +87,11 @@ export default function Toolbar({
   )
 }
 
-/** Segmented control — one option active at a time. */
+/**
+ * Segmented control — one option active at a time. An option may render as an
+ * icon, in which case its label moves to `aria-label`/`title` so it is still
+ * announced and still discoverable on hover.
+ */
 function Segmented<T extends string>({
   value,
   onChange,
@@ -95,7 +99,7 @@ function Segmented<T extends string>({
 }: {
   value: T
   onChange: (next: T) => void
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; icon?: ReactNode }[]
 }) {
   const { theme } = useTheme()
 
@@ -112,14 +116,17 @@ function Segmented<T extends string>({
             type='button'
             onClick={() => onChange(option.value)}
             aria-pressed={active}
+            aria-label={option.icon ? option.label : undefined}
+            title={option.icon ? option.label : undefined}
             style={{
               ...styles.segment,
+              ...(option.icon ? styles.segmentIcon : null),
               background: active ? theme.accent : 'transparent',
               color: active ? '#fff' : theme.textMuted,
               fontWeight: active ? 600 : 400,
             }}
           >
-            {option.label}
+            {option.icon ?? option.label}
           </button>
         )
       })}
@@ -221,6 +228,14 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1,
     cursor: 'pointer',
     transition: 'background 150ms ease, color 150ms ease',
+  },
+  segmentIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 34,
+    height: 28,
+    padding: 0,
   },
   readout: {
     fontSize: 12,

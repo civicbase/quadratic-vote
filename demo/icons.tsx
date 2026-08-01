@@ -62,3 +62,30 @@ export function ThumbsDownIcon({ size }: { size?: number }) {
     </Icon>
   )
 }
+
+export function PhoneIcon() {
+  return (
+    <Icon>
+      <rect x='7' y='2' width='10' height='20' rx='2.5' />
+      <path d='M10.5 18.5h3' />
+    </Icon>
+  )
+}
+
+export function TabletIcon() {
+  return (
+    <Icon>
+      <rect x='4' y='2.5' width='16' height='19' rx='2.5' />
+      <path d='M10.5 18.5h3' />
+    </Icon>
+  )
+}
+
+export function DesktopIcon() {
+  return (
+    <Icon>
+      <rect x='2' y='4' width='20' height='13' rx='2' />
+      <path d='M9 21h6M12 17v4' />
+    </Icon>
+  )
+}

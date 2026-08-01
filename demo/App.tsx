@@ -168,7 +168,17 @@ function Container() {
           </p>
         </header>
 
-        {!useFixedRail && <div style={layout.stackedRail}>{rail}</div>}
+        {!useFixedRail && (
+          <div
+            style={{
+              ...layout.stackedRail,
+              // Opaque, or the question cards scroll through it once it sticks.
+              background: theme.background,
+            }}
+          >
+            {rail}
+          </div>
+        )}
 
         <ol style={layout.list}>
           {questions.map((question, index) => (
@@ -257,9 +267,15 @@ const layout: Record<string, CSSProperties> = {
     zIndex: 10,
   },
   stackedRail: {
+    // Sticks to the top of the viewport once scrolled past, so the pool stays
+    // in view while answering — the credits are the thing you keep checking.
+    position: 'sticky',
+    top: 0,
+    zIndex: 20,
     display: 'flex',
     justifyContent: 'center',
-    marginBottom: 56,
+    padding: '12px 0 20px',
+    marginBottom: 36,
   },
   main: {
     maxWidth: 680,
