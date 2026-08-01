@@ -4,15 +4,20 @@ import { MoonIcon, ResetIcon, SunIcon } from './icons'
 import { useTheme } from './theme'
 
 export type PoolKind = 'grid' | 'liquid'
+export type Device = 'mobile' | 'tablet' | 'desktop'
 
 /**
  * Floating toolbar pinned to the bottom-centre of the demo. Add a control by
  * dropping another <ToolbarButton> in — the pill sizes itself.
  */
 export default function Toolbar({
+  device,
+  onDeviceChange,
   poolKind,
   onPoolKindChange,
 }: {
+  device: Device
+  onDeviceChange: (device: Device) => void
   poolKind: PoolKind
   onPoolKindChange: (kind: PoolKind) => void
 }) {
@@ -44,13 +49,30 @@ export default function Toolbar({
         <div style={{ ...styles.divider, background: theme.border }} />
 
         <Segmented
-          value={poolKind}
-          onChange={onPoolKindChange}
+          value={device}
+          onChange={onDeviceChange}
           options={[
-            { value: 'grid', label: 'Grid' },
-            { value: 'liquid', label: 'Liquid' },
+            { value: 'mobile', label: 'Mobile' },
+            { value: 'tablet', label: 'Tablet' },
+            { value: 'desktop', label: 'Desktop' },
           ]}
         />
+
+        {/* The grid pool is too tall for a phone, and a tablet has no room for a
+            sidebar either, so only desktop gets to choose. */}
+        {device === 'desktop' && (
+          <>
+            <div style={{ ...styles.divider, background: theme.border }} />
+            <Segmented
+              value={poolKind}
+              onChange={onPoolKindChange}
+              options={[
+                { value: 'grid', label: 'Grid' },
+                { value: 'liquid', label: 'Liquid' },
+              ]}
+            />
+          </>
+        )}
 
         <div style={{ ...styles.divider, background: theme.border }} />
 

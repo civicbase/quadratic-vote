@@ -1,13 +1,26 @@
 import { CSSProperties, ReactNode, useEffect, useState } from 'react'
 import QuadraticVote, { Question, useQuadraticVote } from '../src/QuadraticVote'
 import { ThumbsDownIcon, ThumbsUpIcon } from './icons'
-import Toolbar, { PoolKind } from './Toolbar'
+import Toolbar, { Device, PoolKind } from './Toolbar'
 import { ThemeProvider, useTheme } from './theme'
 
 /**
- * Above this width the pool sits in a fixed rail on the left, so the question
- * column stays centred in the viewport rather than being pushed sideways by it.
- * Below it, the pool stacks above the questions.
+ * Simulated viewports. Mobile and tablet stack the pool above the questions
+ * inside a device-width frame; desktop gets the full page with a fixed rail.
+ *
+ * The grid pool needs a tall sidebar it cannot have on a phone, so mobile and
+ * tablet always use the liquid pool — which is exactly the swap Civicbase makes
+ * in production.
+ */
+const DEVICES: Record<Device, { width: number | null; poolSize: number; droplets: number }> = {
+  mobile: { width: 390, poolSize: 84, droplets: 5 },
+  tablet: { width: 834, poolSize: 112, droplets: 6 },
+  desktop: { width: null, poolSize: 140, droplets: 7 },
+}
+
+/**
+ * Desktop only: below this the fixed rail would overlap the centred column, so
+ * it stacks even when the desktop preview is selected.
  */
 const WIDE_QUERY = '(min-width: 1100px)'
 
@@ -24,8 +37,9 @@ function useIsWide() {
   return isWide
 }
 
-function PoolRail({ poolKind }: { poolKind: PoolKind }) {
+function PoolRail({ poolKind, device }: { poolKind: PoolKind; device: Device }) {
   const { theme } = useTheme()
+  const preset = DEVICES[device]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -41,7 +55,11 @@ function PoolRail({ poolKind }: { poolKind: PoolKind }) {
           circleColor={theme.poolCircle}
         />
       ) : (
-        <QuadraticVote.LiquidPool size={140} inkColor={theme.liquidInk} droplets={7} />
+        <QuadraticVote.LiquidPool
+          size={preset.poolSize}
+          inkColor={theme.liquidInk}
+          droplets={preset.droplets}
+        />
       )}
     </div>
   )
@@ -115,17 +133,31 @@ function Container() {
   const { questions, credits } = useQuadraticVote()
   const { theme } = useTheme()
   const isWide = useIsWide()
+  const [device, setDevice] = useState<Device>('desktop')
   const [poolKind, setPoolKind] = useState<PoolKind>('grid')
 
-  const rail = <PoolRail poolKind={poolKind} />
+  // Mobile and tablet have no room for the grid pool, so they always take the
+  // liquid one. Desktop keeps whatever the toolbar last chose.
+  const effectivePoolKind: PoolKind = device === 'desktop' ? poolKind : 'liquid'
+  // The fixed rail only works when there is room beside the centred column.
+  const useFixedRail = device === 'desktop' && isWide
+  const frameWidth = DEVICES[device].width
+
+  const rail = <PoolRail poolKind={effectivePoolKind} device={device} />
 
   return (
     <div style={{ ...layout.page, color: theme.text }}>
-      {/* Wide: a fixed rail, so the question column stays centred in the viewport.
-          Narrow: stacked under the header, where it reads as part of the flow. */}
-      {isWide && <aside style={layout.fixedRail}>{rail}</aside>}
+      {/* Desktop: a fixed rail, so the question column stays centred in the
+          viewport. Otherwise stacked under the header, as part of the flow. */}
+      {useFixedRail && <aside style={layout.fixedRail}>{rail}</aside>}
 
-      <main style={layout.main}>
+      <main
+        style={{
+          ...layout.main,
+          // Narrow the page to the chosen device instead of resizing the window.
+          maxWidth: frameWidth ?? layout.main.maxWidth,
+        }}
+      >
         <header style={layout.header}>
           <h1 style={{ ...text.title, color: theme.text }}>Quadratic Vote</h1>
           <p style={{ ...text.lead, color: theme.textMuted }}>
@@ -136,7 +168,7 @@ function Container() {
           </p>
         </header>
 
-        {!isWide && <div style={layout.stackedRail}>{rail}</div>}
+        {!useFixedRail && <div style={layout.stackedRail}>{rail}</div>}
 
         <ol style={layout.list}>
           {questions.map((question, index) => (
@@ -145,7 +177,12 @@ function Container() {
         </ol>
       </main>
 
-      <Toolbar poolKind={poolKind} onPoolKindChange={setPoolKind} />
+      <Toolbar
+        device={device}
+        onDeviceChange={setDevice}
+        poolKind={poolKind}
+        onPoolKindChange={setPoolKind}
+      />
     </div>
   )
 }
