@@ -70,8 +70,7 @@ function staggerFor(count: number) {
 
 /**
  * Fraction of the trip after which a credit takes on its landing colour, and how
- * long that cross-fade lasts. Used when the pool has no influence radius of its
- * own — the grid Pool, where "near the pool" has no meaning.
+ * long that cross-fade lasts. Applies to every pool.
  *
  * The fade must finish before the credit is removed at the end of its flight, or
  * it lands mid-blend: 0.5 * 650ms + 200ms = 525ms, comfortably inside 650ms.
@@ -81,9 +80,9 @@ const COLOR_FADE_MS = 200
 
 /**
  * A LiquidPool publishes the radius within which a credit counts as part of the
- * liquid. Inside it the credit wears the pool colour and hands its shape over to
- * the pool's gooey layer, which is the only place it can actually deform; outside
- * it keeps its own colour and stays a plain credit.
+ * liquid. Inside it the credit hands its shape over to the pool's gooey layer,
+ * which is the only place it can actually deform; outside it stays a plain
+ * credit. Colour is not decided here — see `LANDING_COLOR_AT`.
  */
 function getPoolInfluence(): { x: number; y: number; radius: number } | null {
   const pool = document.querySelector('[data-liquid-pool="true"][data-influence]')
@@ -417,17 +416,19 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
       }
       const size = r * scale * dropletScale
 
-      // Prefer the pool's own boundary when it has one: a credit should turn
-      // into liquid because it has reached the liquid, not because a timer said
-      // so. Falling back to the time-based switch keeps the grid Pool unchanged.
+      // Colour switches half way, on time rather than on distance. Tying it to
+      // the pool's boundary looked right on paper but is crossed late in the
+      // flight, so the 200ms cross-fade was still running when the credit
+      // reached its droplet — leaving a half-green ring sitting on the liquid.
+      // Half way gives the blend room to finish long before touchdown.
+      const background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
+
+      // The hand-off to the pool's gooey layer stays on distance: that one is
+      // about where the credit is, not how long it has been travelling.
       const influence = getPoolInfluence()
-      let background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
-      let handover = 0
-      if (influence) {
-        const distance = Math.hypot(x - influence.x, y - influence.y)
-        handover = 1 - clamp01(distance / influence.radius)
-        background = handover > 0 ? f.landingColor : f.color
-      }
+      const handover = influence
+        ? 1 - clamp01(Math.hypot(x - influence.x, y - influence.y) / influence.radius)
+        : 0
       const style: React.CSSProperties = {
         position: 'fixed',
         left: `${x - size}px`,
