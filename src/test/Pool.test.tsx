@@ -1,7 +1,7 @@
 import React from 'react'
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, render } from '@testing-library/react'
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 
 import QuadraticVote, { useQuadraticVote } from '../QuadraticVote'
 import { questions } from './test-utils'
@@ -12,6 +12,9 @@ describe('Pool Component', () => {
   afterEach(() => {
     cleanup()
     document.getElementById('animation-overlay')?.remove()
+    // Unconditional: a test that fakes timers and then fails would otherwise
+    // leave them faked for every test after it.
+    vi.useRealTimers()
   })
 
   // const creditColor = "black";
@@ -209,6 +212,11 @@ describe('Pool Component', () => {
     })
 
     it('drains each circle on its own schedule rather than all at once', async () => {
+      // The Provider mounts a real VoteAnimation, which schedules its own start
+      // and end events on timers. Left running it landed extra credits partway
+      // through the assertions, so the counts drifted by one on a slow runner.
+      // Frozen, the only events in play are the ones this test sends.
+      vi.useFakeTimers()
       const { container } = render(<Setup />)
 
       // Three votes cost 9 credits at once.
