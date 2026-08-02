@@ -87,44 +87,6 @@ export const MobileHeaderBar: Story = {
   ),
 }
 
-/**
- * **Both, side by side.** Each viewport gets its own Provider so that only one
- * pool is live per tree — this is a documentation device, not something to copy
- * into an app. In real code, branch on a media query and render one or the other.
- */
-export const ResponsiveComparison: Story = {
-  render: ({ credits }) => (
-    <div style={{ display: 'flex', gap: 32, padding: 24, alignItems: 'flex-start' }}>
-      <div style={{ flex: 1 }}>
-        <h3 style={styles.panelTitle}>Desktop — grid Pool</h3>
-        <Sandbox credits={credits} questions={sampleQuestions}>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-            <Panel title='Credits'>
-              <QuadraticVote.Pool creditColor='#E5E7EB' circleColor='#2563EB' />
-              <CreditsReadout />
-            </Panel>
-            <div style={{ flex: 1 }}>
-              <Ballot diamondProps={diamondTheme} />
-            </div>
-          </div>
-        </Sandbox>
-      </div>
-
-      <div style={{ width: 360, flexShrink: 0 }}>
-        <h3 style={styles.panelTitle}>Mobile — LiquidPool header</h3>
-        <Sandbox credits={credits} questions={sampleQuestions}>
-          <div style={recipeStyles.phone}>
-            <MobileHeader />
-            <div style={{ padding: 16 }}>
-              <Ballot diamondProps={diamondTheme} layout='stacked' />
-            </div>
-          </div>
-        </Sandbox>
-      </div>
-    </div>
-  ),
-}
-
 function SubmitBar() {
   const { credits, availableCredits, questions, reset } = useQuadraticVote()
   const allSpent = availableCredits === 0
