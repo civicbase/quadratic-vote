@@ -211,6 +211,30 @@ refund. The preview clears itself once the vote is cast.
 > **5 credits back**, so `cost` is negative there. Label your buttons from
 > `cost`, not from a formula, or half of them will be wrong.
 
+#### Pricing without hover
+
+`preview` is driven by hover, so it can only ever describe one control at a
+time — and none at all on a touch device. `costOf(id, delta)` runs the same
+calculation with no state behind it, so every control can carry its own price on
+every render.
+
+```tsx
+const { costOf, vote } = useQuadraticVote()
+
+// both controls priced at once; a negative cost is a refund
+{[-1, 1].map((delta) => {
+  const { cost, affordable } = costOf(q.id, delta)
+  return (
+    <button key={delta} disabled={!affordable} onClick={() => vote(q.id, delta)}>
+      {delta === 1 ? '+' : '−'} {cost > 0 ? `−${cost}` : `+${-cost}`}
+    </button>
+  )
+})}
+```
+
+It returns the same `VotePreview` shape as `preview` and does not set it —
+`previewVote` is defined in terms of `costOf`, so the two can never disagree.
+
 ### `<QuadraticVote.Pool>`
 
 Displays the credit pool showing available and used credits with animated transitions.
@@ -289,10 +313,18 @@ const {
   questions, // Current question state with vote counts
   credits, // Total credits
   availableCredits, // Remaining credits
-  vote, // Function to cast a vote: (id: number, amount: number) => void
-  reset, // Function to reset all votes: () => void
+  vote, // Cast a vote: (id, delta) => void
+  reset, // Reset all votes to zero: () => void
+
+  costOf, // Price a press without casting it: (id, delta) => VotePreview
+  preview, // VotePreview | null — what previewVote last described
+  previewVote, // Set preview, and highlight the credits in Pool: (id, delta) => void
+  clearPreview, // Drop the current preview: () => void
 } = useQuadraticVote()
 ```
+
+See [Previewing the cost of a vote](#previewing-the-cost-of-a-vote) for the last
+four.
 
 ### `Question` Type
 

@@ -13,6 +13,11 @@ import { Panel, Sandbox, sampleQuestions, styles } from './harness'
  *   availableCredits, // number — what is left
  *   vote,             // (id, delta) => void
  *   reset,            // () => void
+ *
+ *   costOf,           // (id, delta) => VotePreview — the price, without casting
+ *   preview,          // VotePreview | null — what previewVote last described
+ *   previewVote,      // (id, delta) => void — set preview, and highlight in Pool
+ *   clearPreview,     // () => void
  * } = useQuadraticVote()
  * ```
  *
@@ -20,6 +25,12 @@ import { Panel, Sandbox, sampleQuestions, styles } from './harness'
  * removes one. A call that would exceed the budget is silently ignored, which is why
  * you should drive your buttons off `isDisabledUp` / `isDisabledDown` rather than
  * calling and hoping.
+ *
+ * The bottom four are about price. `previewVote` is for hover: it sets `preview` and
+ * makes `Pool` highlight the credits that would move. `costOf` is the same
+ * calculation with no state behind it, so a control can show its own price on every
+ * render — which is what you need to label an up and a down control at the same
+ * time, or to show a price at all on a touch device.
  */
 type Args = { credits: number }
 
