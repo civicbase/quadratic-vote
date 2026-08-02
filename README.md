@@ -10,6 +10,7 @@
 [![npm latest package](https://img.shields.io/npm/v/quadratic-vote/latest.svg)](https://www.npmjs.com/package/quadratic-vote)
 [![npm downloads](https://img.shields.io/npm/dm/quadratic-vote.svg)](https://www.npmjs.com/package/quadratic-vote)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/quadratic-vote)](https://bundlephobia.com/package/quadratic-vote)
+[![storybook](https://img.shields.io/badge/storybook-online-ff4785?logo=storybook&logoColor=white)](https://main--6a6f23822df3e3c82e19b188.chromatic.com)
 
 </div>
 
@@ -349,8 +350,14 @@ hover, since hover alone is unreachable by keyboard.
 
 ## Storybook
 
-Every component has interactive documentation with live prop controls, plus
-layout recipes and a worked example of building your own interface on the hook.
+**[Browse the Storybook](https://main--6a6f23822df3e3c82e19b188.chromatic.com)** —
+every component with live prop controls, plus layout recipes and a worked example
+of building your own interface on the hook.
+
+It is published to Chromatic on every push to `main`, so the link always shows the
+latest build.
+
+To run it locally:
 
 ```bash
 npm run storybook             # Dev server on http://localhost:6006
@@ -389,6 +396,7 @@ MIT © [Civicbase](https://github.com/civicbase)
 
 ## Links
 
+- [Storybook](https://main--6a6f23822df3e3c82e19b188.chromatic.com)
 - [NPM package](https://www.npmjs.com/package/quadratic-vote)
 - [GitHub repository](https://github.com/civicbase/quadratic-vote)
 - [Issue tracker](https://github.com/civicbase/quadratic-vote/issues)
