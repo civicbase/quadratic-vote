@@ -154,6 +154,24 @@ describe('Pool Component', () => {
         )
       })
 
+    /**
+     * VoteAnimation staggers these by a timer, one per credit. Waiting on that
+     * schedule made the multi-credit test a race it lost on slower machines —
+     * it asserted that every circle was still held while the later start events
+     * had not fired yet. Pool's job is to respond to the events, so the test
+     * sends them; VoteAnimation's own suite covers when they are sent.
+     */
+    const startPoolAnimation = (direction: 'toDiamond' | 'toPool', poolIndexes: number[]) =>
+      act(async () => {
+        for (const poolIndex of poolIndexes) {
+          window.dispatchEvent(
+            new CustomEvent('qv:anim', {
+              detail: { phase: 'start', direction, poolIndex },
+            }),
+          )
+        }
+      })
+
     it('keeps a departing circle available until its credit has actually left', async () => {
       const { container } = render(<Setup />)
 
@@ -207,8 +225,13 @@ describe('Pool Component', () => {
       const spentCount = () =>
         poolCircles(container).filter((c) => c.getAttribute('fill') === SPENT).length
 
+      // All nine credits are in flight, so the budget counts them spent while
+      // the pool still shows every circle as available.
+      await startPoolAnimation('toDiamond', [0, 1, 2, 3, 4, 5, 6, 7, 8])
       expect(spentCount()).toBe(0)
 
+      // Each circle turns only when its own credit lands, not when the vote
+      // was cast.
       await endPoolAnimation('toDiamond', 0)
       expect(spentCount()).toBe(1)
 
