@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { CSSProperties } from 'react'
-import QuadraticVote, { useQuadraticVote } from '../src/QuadraticVote'
-import { Sandbox, sampleQuestions } from './harness'
+import { CSSProperties, ReactNode } from 'react'
+import { useQuadraticVote } from '../src/QuadraticVote'
+import { Sandbox } from './harness'
 
 /**
  * `Pool`, `LiquidPool` and `Diamond` are one way to draw a quadratic ballot,
@@ -234,7 +234,12 @@ function Controls({ id }: { id: string | number }) {
   )
 }
 
-function BarBallot({ poles }: { poles?: [string, string] }) {
+/**
+ * The ballot around whichever indicator is being shown. The rows and the
+ * controls are identical either way — swapping the drawing is the whole
+ * difference between one mode and another.
+ */
+function Ballot({ indicator }: { indicator: (id: string | number) => ReactNode }) {
   const { questions } = useQuadraticVote()
 
   return (
@@ -245,10 +250,116 @@ function BarBallot({ poles }: { poles?: [string, string] }) {
             <p style={bar.rowTitle}>{String(question.question)}</p>
             <Controls id={question.id} />
           </div>
-          <Bar id={question.id} poles={poles} />
+          {indicator(question.id)}
         </li>
       ))}
     </ul>
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * Radius: the same cost, encoded as area
+ * ------------------------------------------------------------------ */
+
+/** Radius of a maxed-out allocation, in px. */
+const MAX_RADIUS = 34
+
+/**
+ * One question's allocation as a disc whose radius is the vote.
+ *
+ * Where the bar has to combine two channels to make the cost visible — length
+ * *and* thickness, so the ink works out to vote² — a circle gets it for free.
+ * Radius grows linearly with votes, so area grows as vote², which is exactly
+ * what the allocation costs. Nothing has to be tuned to keep it honest.
+ *
+ * The tradeoff is comparison. Length is one of the easiest things to judge by
+ * eye and area one of the hardest, so a respondent reads *this costs a lot*
+ * more readily here and *this costs twice that* less readily. Worth it when the
+ * ballot is about weighing one strong conviction against a spread of mild ones,
+ * less so when the answers need ranking against each other.
+ *
+ * The dashed ring is the cap, so the room left on a question is visible rather
+ * than only discovered when a control greys out.
+ */
+function Radius({
+  id,
+  positiveColor = '#16a34a',
+  negativeColor = '#dc2626',
+  maxVotes = 10,
+}: {
+  id: string | number
+  positiveColor?: string
+  negativeColor?: string
+  maxVotes?: number
+}) {
+  const { questions } = useQuadraticVote()
+  const vote = questions.find((q) => q.id === id)?.vote ?? 0
+
+  const magnitude = Math.abs(vote)
+  const positive = vote >= 0
+  const color = positive ? positiveColor : negativeColor
+  const radius = (magnitude / maxVotes) * MAX_RADIUS
+
+  const width = MAX_RADIUS * 2 + 60
+  const height = MAX_RADIUS * 2 + 10
+  const cx = MAX_RADIUS + 5
+  const cy = height / 2
+  const hatchId = `qv-hatch-${id}`
+
+  return (
+    <div style={bar.radiusCell}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden='true'>
+        <defs>
+          {/*
+           * Direction on a disc cannot use the bar's taper — a circle has no
+           * far end to point with. Texture is the substitute: it is a channel
+           * of its own, so it survives when hue does not, and unlike a hollow
+           * ring it leaves the area intact.
+           */}
+          <pattern
+            id={hatchId}
+            width='6'
+            height='6'
+            patternUnits='userSpaceOnUse'
+            patternTransform='rotate(45)'
+          >
+            <rect width='6' height='6' fill={color} />
+            <line x1='0' y1='0' x2='0' y2='6' stroke='rgba(255,255,255,0.55)' strokeWidth='2' />
+          </pattern>
+        </defs>
+
+        <circle
+          cx={cx}
+          cy={cy}
+          r={MAX_RADIUS}
+          fill='none'
+          stroke='#d1d5db'
+          strokeWidth='1'
+          strokeDasharray='3 4'
+        />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill={positive ? color : `url(#${hatchId})`}
+          style={{ transition: 'r 320ms cubic-bezier(0.22, 1, 0.36, 1)' }}
+        />
+
+        {vote !== 0 && (
+          <text
+            x={MAX_RADIUS * 2 + 16}
+            y={cy}
+            dominantBaseline='middle'
+            fill={color}
+            fontSize='13'
+            fontWeight='600'
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {vote > 0 ? `+${vote}` : `−${magnitude}`}
+          </text>
+        )}
+      </svg>
+    </div>
   )
 }
 
@@ -270,80 +381,29 @@ export const Bars: Story = {
     <Sandbox credits={100}>
       <div style={bar.page}>
         <BudgetBar />
-        <BarBallot />
+        <Ballot indicator={(id) => <Bar id={id} />} />
       </div>
     </Sandbox>
   ),
 }
 
 /**
- * The same `Bar`, given the words a study uses.
+ * The same ballot, the same context, the allocation drawn as area instead of
+ * length.
  *
- * The component ships no vocabulary. Researchers name their own poles, and
- * Civicbase's terminology guide rules out the obvious candidates anyway, so the
- * axis words are a slot the caller fills. Leave it empty — as the story above
- * does — and direction still reads, because the taper and the signed number
- * carry it without relying on colour.
+ * Only the indicator changes — the rows, the controls and the budget bar are
+ * the ones from the story above. That is the point of reading state off the
+ * context rather than owning it: a mode is a component, not a fork.
  */
-export const LabelledAxis: Story = {
+export const Radii: Story = {
   render: () => (
     <Sandbox credits={100}>
       <div style={bar.page}>
         <BudgetBar />
-        <BarBallot poles={['disagree', 'agree']} />
+        <Ballot indicator={(id) => <Radius id={id} />} />
       </div>
     </Sandbox>
   ),
-}
-
-/**
- * One Provider, two visual languages, side by side and in sync.
- *
- * Vote on either column and both move, because neither owns any state. This is
- * what makes a second mode additive: the exported `Diamond` and a bar written
- * in a story file are peers, reading the same context.
- */
-export const SameStateTwoUIs: Story = {
-  render: () => (
-    <Sandbox credits={100} questions={sampleQuestions.slice(0, 3)}>
-      <div style={bar.page}>
-        <BudgetBar />
-        <TwoUpComparison />
-      </div>
-    </Sandbox>
-  ),
-}
-
-function TwoUpComparison() {
-  const { questions } = useQuadraticVote()
-
-  return (
-    <ul style={bar.list}>
-      {questions.map((question) => (
-        <li key={question.id} style={bar.row}>
-          <div style={bar.rowHead}>
-            <p style={bar.rowTitle}>{String(question.question)}</p>
-            <Controls id={question.id} />
-          </div>
-          <div style={bar.twoUp}>
-            <div>
-              <span style={bar.caption}>Bar</span>
-              <Bar id={question.id} />
-            </div>
-            <div style={bar.diamondCell}>
-              <span style={bar.caption}>Diamond</span>
-              <QuadraticVote.Diamond
-                id={question.id}
-                neutralColor='#d1d5db'
-                positiveColor='#16a34a'
-                negativeColor='#dc2626'
-              />
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
 }
 
 /* ------------------------------------------------------------------ *
@@ -450,14 +510,5 @@ const bar: Record<string, CSSProperties> = {
   buttonOff: { opacity: 0.35, cursor: 'not-allowed' },
   price: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
 
-  twoUp: { display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'center' },
-  diamondCell: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 },
-  caption: {
-    display: 'block',
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: '0.09em',
-    color: '#9ca3af',
-    marginBottom: 6,
-  },
+  radiusCell: { display: 'flex', justifyContent: 'center', padding: '4px 0' },
 }
