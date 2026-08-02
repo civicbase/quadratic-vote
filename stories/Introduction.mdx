@@ -8,13 +8,42 @@ A React component library for quadratic voting. Voters spend **credits** to buy
 **votes**, and the cost grows quadratically — so expressing a strong preference
 costs real budget.
 
-| Votes on one question | Credits spent |
-| --------------------- | ------------- |
-| 1                     | 1             |
-| 2                     | 4             |
-| 3                     | 9             |
-| 5                     | 25            |
-| 10                    | 100           |
+{/*
+  Written as HTML rather than a pipe table: Storybook's MDX pipeline does not
+  include remark-gfm, so GFM tables are never parsed and render as a run of
+  literal pipes. HTML passes straight through.
+*/}
+
+<table>
+  <thead>
+    <tr>
+      <th align='left'>Votes on one question</th>
+      <th align='left'>Credits spent</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>25</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>100</td>
+    </tr>
+  </tbody>
+</table>
 
 Negative votes cost the same as positive ones: `cost = vote²`.
 
