@@ -78,3 +78,37 @@ export const questionsWithVotes: Question[] = [
 
 // eslint-disable-next-line react-refresh/only-export-components
 export * from '@testing-library/react'
+
+/**
+ * Colours as a comparable value rather than a string.
+ *
+ * jsdom normalises computed colours differently between versions — `#A9A9A9`
+ * in one, `rgb(169, 169, 169)` in the next — so assertions written against the
+ * raw string break on a jsdom upgrade even though nothing about the component
+ * changed. Compare through this instead.
+ */
+export function normalizeColor(value: string | null | undefined) {
+  if (!value) return ''
+  const text = value.trim()
+
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text)
+  if (hex) {
+    const digits =
+      hex[1].length === 3
+        ? hex[1]
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : hex[1]
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(digits.slice(i, i + 2), 16))
+    return `rgb(${r}, ${g}, ${b})`
+  }
+
+  const rgb = /^rgba?\(([^)]+)\)$/i.exec(text)
+  if (rgb) {
+    const [r, g, b] = rgb[1].split(/[,\s/]+/).filter(Boolean).map(Number)
+    return `rgb(${r}, ${g}, ${b})`
+  }
+
+  return text.toLowerCase()
+}

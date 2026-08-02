@@ -163,11 +163,23 @@ function getNodeScreenRect(node: Element) {
 function getNodeColor(node: Element | null): string | null {
   if (!node) return null
   if (node instanceof SVGElement) {
-    // Diamond paints through `style.fill` while Pool uses the `fill` attribute,
-    // so read the computed value first and only then fall back to the attribute.
+    // Diamond paints through `style.fill` while Pool uses the `fill` attribute.
+    // Read them in specificity order — inline style beats the presentation
+    // attribute — and treat the computed value as the last resort.
+    //
+    // Asking the computed style first looked equivalent and was not: a
+    // presentation attribute does not reliably reach computed style outside a
+    // real browser, so the computed value came back as the initial `black` and
+    // the attribute was never consulted. Every credit then flew out painted
+    // black regardless of the pool's colour.
+    const inline = node.style.fill
+    if (inline && inline !== 'none') return inline
+
+    const attribute = node.getAttribute('fill')
+    if (attribute && attribute !== 'none') return attribute
+
     const computed = window.getComputedStyle(node).fill
-    if (computed && computed !== 'none') return computed
-    return node.getAttribute('fill')
+    return computed && computed !== 'none' ? computed : null
   }
   const style = window.getComputedStyle(node as HTMLElement)
   return style.backgroundColor || null

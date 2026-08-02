@@ -4,7 +4,7 @@ import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import QuadraticVote from '../QuadraticVote'
-import { questions } from './test-utils'
+import { normalizeColor, questions } from './test-utils'
 
 describe('Diamond Component', () => {
   const neutralColor = '#A9A9A9'
@@ -197,7 +197,9 @@ describe('Diamond Component', () => {
 
     circles.forEach((circle) => {
       computedStyle = window.getComputedStyle(circle)
-      expect(computedStyle.getPropertyValue('fill')).toBe(`${neutralColor}`)
+      expect(normalizeColor(computedStyle.getPropertyValue('fill'))).toBe(
+        normalizeColor(neutralColor),
+      )
     })
   })
 
@@ -220,7 +222,9 @@ describe('Diamond Component', () => {
 
     circles.forEach((circle) => {
       computedStyle = window.getComputedStyle(circle)
-      expect(computedStyle.getPropertyValue('fill')).toBe(`${greenColor}`)
+      expect(normalizeColor(computedStyle.getPropertyValue('fill'))).toBe(
+        normalizeColor(greenColor),
+      )
     })
   })
 
@@ -243,7 +247,7 @@ describe('Diamond Component', () => {
 
     circles.forEach((circle) => {
       fillColor = window.getComputedStyle(circle).getPropertyValue('fill')
-      expect(neutralColor).toBe(fillColor)
+      expect(normalizeColor(neutralColor)).toBe(normalizeColor(fillColor))
     })
   })
 
