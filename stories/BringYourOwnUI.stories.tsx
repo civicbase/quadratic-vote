@@ -258,7 +258,7 @@ function Ballot({ indicator }: { indicator: (id: string | number) => ReactNode }
 }
 
 /* ------------------------------------------------------------------ *
- * Radius: the same cost, encoded as area
+ * Circle: the same cost, encoded as area
  * ------------------------------------------------------------------ */
 
 /** Radius of a maxed-out allocation, in px. */
@@ -286,7 +286,7 @@ const MAX_RADIUS = 34
  * The dashed ring is the cap, so the room left on a question is visible rather
  * than only discovered when a control greys out.
  */
-function Radius({
+function Circle({
   id,
   positiveColor = '#16a34a',
   negativeColor = '#dc2626',
@@ -380,12 +380,12 @@ export const Bars: Story = {
  * the ones from the story above. That is the point of reading state off the
  * context rather than owning it: a mode is a component, not a fork.
  */
-export const Radii: Story = {
+export const Circles: Story = {
   render: () => (
     <Sandbox credits={100}>
       <div style={bar.page}>
         <BudgetBar />
-        <Ballot indicator={(id) => <Radius id={id} />} />
+        <Ballot indicator={(id) => <Circle id={id} />} />
       </div>
     </Sandbox>
   ),
