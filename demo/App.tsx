@@ -37,7 +37,71 @@ function useIsWide() {
   return isWide
 }
 
-function PoolRail({ poolKind, device }: { poolKind: PoolKind; device: Device }) {
+const MIN_COLUMNS = 3
+const MAX_COLUMNS = 10
+
+/**
+ * Vertical slider for the grid pool's column count, sitting alongside it.
+ *
+ * `alignItems: stretch` on the row means it takes its height from the pool, so
+ * it keeps pace as the grid grows taller at lower column counts.
+ */
+function ColumnSlider({
+  columns,
+  onChange,
+}: {
+  columns: number
+  onChange: (columns: number) => void
+}) {
+  const { theme } = useTheme()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      <input
+        type='range'
+        min={MIN_COLUMNS}
+        max={MAX_COLUMNS}
+        step={1}
+        value={columns}
+        onChange={(event) => onChange(Number(event.target.value))}
+        aria-label='Pool columns'
+        style={{
+          // `direction: rtl` puts the maximum at the top, so dragging up widens
+          // the grid. The -webkit rule is the old Safari spelling.
+          writingMode: 'vertical-lr',
+          direction: 'rtl',
+          WebkitAppearance: 'slider-vertical',
+          width: 18,
+          flex: 1,
+          minHeight: 90,
+          accentColor: theme.accent,
+          cursor: 'ns-resize',
+        }}
+      />
+      <span
+        style={{
+          ...text.meta,
+          color: theme.textMuted,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {columns}
+      </span>
+    </div>
+  )
+}
+
+function PoolRail({
+  poolKind,
+  device,
+  columns,
+  onColumnsChange,
+}: {
+  poolKind: PoolKind
+  device: Device
+  columns: number
+  onColumnsChange: (columns: number) => void
+}) {
   const { theme } = useTheme()
   const preset = DEVICES[device]
 
@@ -47,13 +111,16 @@ function PoolRail({ poolKind, device }: { poolKind: PoolKind; device: Device }) 
 
       {/* Only one pool is ever mounted — two would compete for the same flying credits. */}
       {poolKind === 'grid' ? (
-        <QuadraticVote.Pool
-          columns={10}
-          circleRadius={5}
-          circleSpacing={5}
-          creditColor={theme.poolCredit}
-          circleColor={theme.poolCircle}
-        />
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: 14 }}>
+          <QuadraticVote.Pool
+            columns={columns}
+            circleRadius={5}
+            circleSpacing={5}
+            creditColor={theme.poolCredit}
+            circleColor={theme.poolCircle}
+          />
+          <ColumnSlider columns={columns} onChange={onColumnsChange} />
+        </div>
       ) : (
         <QuadraticVote.LiquidPool
           size={preset.poolSize}
@@ -150,6 +217,7 @@ function Container() {
   const isWide = useIsWide()
   const [device, setDevice] = useState<Device>('desktop')
   const [poolKind, setPoolKind] = useState<PoolKind>('grid')
+  const [columns, setColumns] = useState(10)
 
   // Mobile and tablet have no room for the grid pool, so they always take the
   // liquid one. Desktop keeps whatever the toolbar last chose.
@@ -158,7 +226,14 @@ function Container() {
   const useFixedRail = device === 'desktop' && isWide
   const frameWidth = DEVICES[device].width
 
-  const rail = <PoolRail poolKind={effectivePoolKind} device={device} />
+  const rail = (
+    <PoolRail
+      poolKind={effectivePoolKind}
+      device={device}
+      columns={columns}
+      onColumnsChange={setColumns}
+    />
+  )
 
   return (
     <div style={{ ...layout.page, color: theme.text }}>
