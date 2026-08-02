@@ -1,6 +1,26 @@
-import React, { ReactElement } from 'react'
+import React, { ReactElement, SVGProps } from 'react'
 
-export const setViewBox = (circles: ReactElement[]) => {
+/**
+ * These are always `<circle>` elements built by `createDiamond`, so name that.
+ * React 19 changed `ReactElement`'s default props type from `any` to `unknown`,
+ * which turned every read below into an error — the elements were never really
+ * untyped, the old default was just hiding it.
+ */
+export type CircleElement = ReactElement<
+  // `cx`/`cy`/`r` widen to `string | number` on SVGProps; createDiamond only
+  // ever writes numbers, and the bounding-box maths needs them to stay numbers.
+  Omit<SVGProps<SVGCircleElement>, 'cx' | 'cy' | 'r'> & {
+    cx?: number
+    cy?: number
+    r?: number
+    /** `level-<n>`, the diamond ring this circle belongs to. */
+    'data-level': string
+    /** Index of the circle within its ring. */
+    'data-ai': string
+  }
+>
+
+export const setViewBox = (circles: CircleElement[]) => {
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
@@ -43,8 +63,8 @@ export const createDiamond = (
   id: string | number,
   credits: number,
   radius: number = 4,
-): ReactElement[] => {
-  const circles: ReactElement[] = []
+): CircleElement[] => {
+  const circles: CircleElement[] = []
   const maxLevel = Math.abs(Math.sqrt(credits))
 
   for (let level: number = 1; level <= maxLevel; level++) {

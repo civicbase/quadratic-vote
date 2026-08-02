@@ -120,7 +120,8 @@ function Pool({
   }, [preview, usedCredits, credits])
 
   const circles = useMemo(() => {
-    const circleElements: JSX.Element[] = []
+    // React 19 no longer declares a global JSX namespace; it lives on React.
+    const circleElements: React.JSX.Element[] = []
 
     for (let i = 0; i < credits; i++) {
       const column = i % columns
