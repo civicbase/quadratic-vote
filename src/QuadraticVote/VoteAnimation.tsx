@@ -298,6 +298,22 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
   }, [ensureOverlay, step])
 
   useEffect(() => {
+    /**
+     * Every announcement below is scheduled, and each one touches `window`.
+     * Unmounting without cancelling them left the callbacks to fire into a torn
+     * down document — harmless-looking in an app, fatal in a test run, where
+     * the environment is gone by the time they land and `window is not
+     * defined` surfaces as an unhandled error.
+     */
+    const pendingTimers = new Set<number>()
+    const announce = (fn: () => void, delay: number) => {
+      const id = window.setTimeout(() => {
+        pendingTimers.delete(id)
+        fn()
+      }, delay)
+      pendingTimers.add(id)
+    }
+
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<LaunchAnimationPayload>).detail
       if (!detail) return
@@ -343,7 +359,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
             delayMs,
           })
           // Clear pool circle shortly after this credit departs.
-          window.setTimeout(() => {
+          announce(() => {
             window.dispatchEvent(
               new CustomEvent('qv:anim-pool', {
                 detail: {
@@ -355,7 +371,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
             )
           }, CLEAR_DELAY_MS + delayMs)
           // schedule diamond arrival end announcement
-          window.setTimeout(() => {
+          announce(() => {
             window.dispatchEvent(
               new CustomEvent('qv:anim-diamond', {
                 detail: {
@@ -412,7 +428,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
             delayMs,
           })
           // Clear diamond circle shortly after this credit departs.
-          window.setTimeout(() => {
+          announce(() => {
             window.dispatchEvent(
               new CustomEvent('qv:anim-diamond', {
                 detail: {
@@ -426,7 +442,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
             )
           }, CLEAR_DELAY_MS + delayMs)
           // Pool arrival — staggered, so the pool refills circle by circle.
-          window.setTimeout(() => {
+          announce(() => {
             window.dispatchEvent(
               new CustomEvent('qv:anim-pool', {
                 detail: {
@@ -444,7 +460,11 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
     }
 
     window.addEventListener('qv:launch-animation', handler as EventListener)
-    return () => window.removeEventListener('qv:launch-animation', handler as EventListener)
+    return () => {
+      window.removeEventListener('qv:launch-animation', handler as EventListener)
+      for (const id of pendingTimers) window.clearTimeout(id)
+      pendingTimers.clear()
+    }
   }, [returnOrder])
 
   const elements = useMemo(() => {
