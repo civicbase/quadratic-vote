@@ -46,6 +46,32 @@ export default [
     },
   },
   {
+    /**
+     * The React Compiler rules that arrived with eslint-plugin-react-hooks 7
+     * describe render. These two modules are deliberately outside it: the
+     * animation runs on requestAnimationFrame and writes SVG attributes and
+     * refs directly, precisely so a frame costs no React render. Satisfying
+     * the rules would mean moving that work back into render, which is the
+     * thing the design avoids.
+     *
+     * Scoped to these files so the rules still apply everywhere else.
+     */
+    files: ['src/QuadraticVote/LiquidPool.tsx', 'src/QuadraticVote/VoteAnimation.tsx'],
+    rules: {
+      'react-hooks/refs': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/immutability': 'off',
+    },
+  },
+  {
+    // Tests capture the hook's value by assigning to a variable in the closure,
+    // which is how you read context from outside the component under test.
+    files: ['src/test/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/globals': 'off',
+    },
+  },
+  {
     // Storybook files are documentation, not library code. Story modules export
     // config objects alongside components, which is exactly what react-refresh warns about.
     files: [

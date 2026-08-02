@@ -125,13 +125,15 @@ function BudgetBar() {
   const { questions, credits, availableCredits, preview } = useQuadraticVote()
   const spent = credits - availableCredits
 
-  let offset = 0
-  const segments = questions.map((question, index) => {
-    const share = (question.vote ** 2 / credits) * 100
-    const segment = { question, color: HUES[index % HUES.length], left: offset, width: share }
-    offset += share
-    return segment
-  })
+  // Prefix sum rather than an accumulator mutated inside map — the segments
+  // sit end to end, so each one starts where everything before it finished.
+  const shares = questions.map((question) => (question.vote ** 2 / credits) * 100)
+  const segments = questions.map((question, index) => ({
+    question,
+    color: HUES[index % HUES.length],
+    left: shares.slice(0, index).reduce((sum, share) => sum + share, 0),
+    width: shares[index],
+  }))
 
   const pending = preview && preview.affordable && preview.cost !== 0
   const pendingWidth = pending ? (Math.abs(preview.cost) / credits) * 100 : 0
