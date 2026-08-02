@@ -278,6 +278,11 @@ const MAX_RADIUS = 34
  * ballot is about weighing one strong conviction against a spread of mild ones,
  * less so when the answers need ranking against each other.
  *
+ * Direction rests on the signed number. A disc has no far end to point with, so
+ * the bar's taper has no equivalent here, and the fill is left plain — which
+ * makes the label the only cue that survives without colour rather than one of
+ * two. A ballot that leans on this mode should keep it legible.
+ *
  * The dashed ring is the cap, so the room left on a question is visible rather
  * than only discovered when a control greys out.
  */
@@ -304,30 +309,10 @@ function Radius({
   const height = MAX_RADIUS * 2 + 10
   const cx = MAX_RADIUS + 5
   const cy = height / 2
-  const hatchId = `qv-hatch-${id}`
 
   return (
     <div style={bar.radiusCell}>
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden='true'>
-        <defs>
-          {/*
-           * Direction on a disc cannot use the bar's taper — a circle has no
-           * far end to point with. Texture is the substitute: it is a channel
-           * of its own, so it survives when hue does not, and unlike a hollow
-           * ring it leaves the area intact.
-           */}
-          <pattern
-            id={hatchId}
-            width='6'
-            height='6'
-            patternUnits='userSpaceOnUse'
-            patternTransform='rotate(45)'
-          >
-            <rect width='6' height='6' fill={color} />
-            <line x1='0' y1='0' x2='0' y2='6' stroke='rgba(255,255,255,0.55)' strokeWidth='2' />
-          </pattern>
-        </defs>
-
         <circle
           cx={cx}
           cy={cy}
@@ -341,7 +326,7 @@ function Radius({
           cx={cx}
           cy={cy}
           r={radius}
-          fill={positive ? color : `url(#${hatchId})`}
+          fill={color}
           style={{ transition: 'r 320ms cubic-bezier(0.22, 1, 0.36, 1)' }}
         />
 
