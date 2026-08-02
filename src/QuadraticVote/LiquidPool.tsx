@@ -67,6 +67,11 @@ const BURST_SLOTS = 14
  */
 const GUEST_SLOTS = 12
 const BURST_MS = 780
+/**
+ * How long an unlanded credit may be held out of the fill. Longer than any real
+ * flight plus its stagger, so it only ever catches events that never arrived.
+ */
+const PENDING_TTL_MS = 2500
 /** Matches the old anchor: VoteAnimation sizes the flying credit from this box. */
 const ANCHOR_PX = 10
 
@@ -188,12 +193,18 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
 
   /** Target fill, read by the loop without restarting it. */
   /**
-   * Credits heading back to the pool that have not landed yet. `availableCredits`
-   * jumps the moment the vote is cast, which would pop the new droplet into
-   * existence before its credit has arrived. Holding them back means the credit
-   * gets there first and the droplet forms around it.
+   * Credits heading back to the pool that have not landed yet, keyed by the
+   * circle they are bound for. `availableCredits` jumps the moment the vote is
+   * cast, which would pop the new droplet into existence before its credit has
+   * arrived; holding these back means the credit gets there first and the
+   * droplet forms around it.
+   *
+   * Entries carry a timestamp and are purged once they outlive any real flight.
+   * A plain counter leaks: one missed arrival event — a remount, a vanished
+   * target — and the pool believes it is permanently emptier than it is,
+   * shrinking until the liquid all but disappears.
    */
-  const inbound = useRef(0)
+  const pendingIn = useRef(new Map<number, number>())
 
   const budget = useRef({ credits, availableCredits })
   budget.current = { credits, availableCredits }
@@ -296,8 +307,14 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       const anchorEls = anchorsRef.current
         ? (anchorsRef.current.children as unknown as HTMLElement[])
         : null
+      // Drop anything that has outlived a plausible flight before counting it,
+      // so a missed arrival cannot hold the pool down permanently.
+      for (const [index, stamp] of pendingIn.current) {
+        if (clock.current - stamp > PENDING_TTL_MS) pendingIn.current.delete(index)
+      }
       const { credits: totalCredits, availableCredits: available } = budget.current
-      const fill = totalCredits > 0 ? clamp01((available - inbound.current) / totalCredits) : 0
+      const fill =
+        totalCredits > 0 ? clamp01((available - pendingIn.current.size) / totalCredits) : 0
       const t = elapsed / 1000
       const drift = (Math.PI * 2) / Math.max(1, driftSeconds)
 
@@ -314,9 +331,11 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       }
 
       // Distance from the centre within which a credit belongs to the liquid.
-      // Published so VoteAnimation hands over at exactly the same boundary
-      // instead of both of them guessing.
-      const influence = radius * 1.25 + spreadPx * 0.95
+      // Must reach past the outermost droplet — they orbit out to
+      // `radius + spreadPx * 1.09`, and a credit landing on one has to cross
+      // into the liquid before it gets there. Published so VoteAnimation hands
+      // over at exactly the same boundary instead of both of them guessing.
+      const influence = radius * 1.35 + spreadPx * 1.25
       const box = boxRef.current
       if (box) box.setAttribute('data-influence', String(Math.round(influence)))
 
@@ -520,13 +539,15 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
      */
     const countInbound = (e: Event) => {
       const detail = (e as CustomEvent).detail
-      if (detail?.direction !== 'toPool') return
-      if (detail.phase === 'start') inbound.current += 1
+      if (detail?.direction !== 'toPool' || detail.phase !== 'start') return
+      if (typeof detail.poolIndex === 'number') {
+        pendingIn.current.set(detail.poolIndex, clock.current)
+      }
     }
     const countLanded = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (detail?.direction !== 'toPool' || detail.phase !== 'end') return
-      inbound.current = Math.max(0, inbound.current - 1)
+      if (typeof detail.poolIndex === 'number') pendingIn.current.delete(detail.poolIndex)
     }
 
     window.addEventListener('qv:anim', handler as EventListener)
