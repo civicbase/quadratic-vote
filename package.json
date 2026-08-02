@@ -74,7 +74,8 @@
     "type-check:storybook": "tsc --noEmit -p tsconfig.storybook.json",
     "prepublishOnly": "npm run lint && npm run type-check && npm run test:run && npm run build",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "chromatic": "chromatic --exit-zero-on-changes"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
@@ -91,6 +92,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.8",
     "@vitest/ui": "^2.1.8",
+    "chromatic": "^18.1.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.7.0",
