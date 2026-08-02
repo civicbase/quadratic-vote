@@ -47,6 +47,67 @@ function clamp01(n: number) {
   return Math.max(0, Math.min(1, n))
 }
 
+type Rgb = [number, number, number]
+
+const rgbCache = new Map<string, Rgb>()
+
+/**
+ * Colours reach us from several places — a `fill` attribute, a computed style, a
+ * raw prop — so they can be hex, `rgb()`, or a keyword. Parsed once per colour
+ * and cached, because the blend below runs per credit per frame.
+ */
+function toRgb(color: string): Rgb {
+  const cached = rgbCache.get(color)
+  if (cached) return cached
+
+  let out: Rgb = [0, 0, 0]
+  const hex = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+  const fn = color.trim().match(/^rgba?\(([^)]+)\)$/i)
+
+  if (hex) {
+    const h = hex[1]
+    const full = h.length === 3 ? h[0] + h[0] + h[1] + h[1] + h[2] + h[2] : h
+    out = [
+      parseInt(full.slice(0, 2), 16),
+      parseInt(full.slice(2, 4), 16),
+      parseInt(full.slice(4, 6), 16),
+    ]
+  } else if (fn) {
+    const parts = fn[1]
+      .split(/[ ,/]+/)
+      .filter(Boolean)
+      .map(Number)
+    out = [parts[0] || 0, parts[1] || 0, parts[2] || 0]
+  } else if (typeof document !== 'undefined') {
+    // Keywords such as `black`. Resolve through the browser once.
+    const probe = document.createElement('span')
+    probe.style.color = color
+    document.body.appendChild(probe)
+    const resolved = window.getComputedStyle(probe).color
+    probe.remove()
+    const m = resolved.match(/^rgba?\(([^)]+)\)$/i)
+    if (m) {
+      const parts = m[1]
+        .split(/[ ,/]+/)
+        .filter(Boolean)
+        .map(Number)
+      out = [parts[0] || 0, parts[1] || 0, parts[2] || 0]
+    }
+  }
+
+  rgbCache.set(color, out)
+  return out
+}
+
+function mixColors(from: string, to: string, amount: number) {
+  if (amount <= 0) return from
+  if (amount >= 1) return to
+  const a = toRgb(from)
+  const b = toRgb(to)
+  const at = (i: number) => Math.round(a[i] + (b[i] - a[i]) * amount)
+  return `rgb(${at(0)}, ${at(1)}, ${at(2)})`
+}
+
 /** Base time a single credit spends in flight. */
 const FLIGHT_DURATION_MS = 650
 /** A credit's source circle is cleared shortly after it sets off. */
@@ -77,6 +138,14 @@ function staggerFor(count: number) {
  */
 const LANDING_COLOR_AT = 0.5
 const COLOR_FADE_MS = 200
+
+/**
+ * Where a credit starts and finishes taking on the pool's colour, as multiples
+ * of the pool's influence radius. It ends outside the boundary so the credit has
+ * already become liquid-coloured before it arrives, never during.
+ */
+const COLOR_FADE_FROM = 2.6
+const COLOR_FADE_TO = 1.15
 
 /**
  * A LiquidPool publishes the radius within which a credit counts as part of the
@@ -416,19 +485,30 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
       }
       const size = r * scale * dropletScale
 
-      // Colour switches half way, on time rather than on distance. Tying it to
-      // the pool's boundary looked right on paper but is crossed late in the
-      // flight, so the 200ms cross-fade was still running when the credit
-      // reached its droplet — leaving a half-green ring sitting on the liquid.
-      // Half way gives the blend room to finish long before touchdown.
-      const background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
-
-      // The hand-off to the pool's gooey layer stays on distance: that one is
-      // about where the credit is, not how long it has been travelling.
       const influence = getPoolInfluence()
-      const handover = influence
-        ? 1 - clamp01(Math.hypot(x - influence.x, y - influence.y) / influence.radius)
-        : 0
+      let background: string
+      let handover = 0
+
+      if (influence) {
+        const distance = Math.hypot(x - influence.x, y - influence.y)
+        handover = 1 - clamp01(distance / influence.radius)
+
+        // Blend by distance and finish *before* the boundary, so the credit is
+        // already the colour of the liquid by the time it touches it.
+        //
+        // Timing cannot do this job. The easing is ease-out cubic, so at the
+        // half-way point in time a credit has already covered ~87% of the
+        // distance — it is deep inside the pool before a time-based fade has
+        // even started. Interpolating per frame also means no CSS transition
+        // trailing behind, which is what left a half-green ring on the liquid.
+        const fadeFrom = influence.radius * COLOR_FADE_FROM
+        const fadeTo = influence.radius * COLOR_FADE_TO
+        const amount = clamp01((fadeFrom - distance) / Math.max(1, fadeFrom - fadeTo))
+        background = mixColors(f.color, f.landingColor, amount)
+      } else {
+        // The grid Pool has no boundary, so fall back to switching half way.
+        background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
+      }
       const style: React.CSSProperties = {
         position: 'fixed',
         left: `${x - size}px`,
@@ -442,7 +522,13 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
         // on top of the blob it is supposed to be melting into.
         opacity: handover > 0 ? opacity * (1 - clamp01(handover * 1.6)) : opacity,
         willChange: 'transform, left, top, opacity',
-        transition: `opacity 120ms linear, background-color ${COLOR_FADE_MS}ms linear`,
+        // Against a LiquidPool the colour is already interpolated per frame, so
+        // transitioning it as well would only add lag to a value that is exactly
+        // right for where the credit is. The grid Pool switches abruptly at the
+        // midpoint and still needs the smoothing.
+        transition: influence
+          ? 'opacity 120ms linear'
+          : `opacity 120ms linear, background-color ${COLOR_FADE_MS}ms linear`,
         transform: 'translateZ(0)',
       }
       return <div key={f.id} style={style} />
