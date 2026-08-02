@@ -92,7 +92,19 @@ export function QuestionRow({
   layout?: 'row' | 'stacked'
   children?: ReactNode
 }) {
-  const { vote } = useQuadraticVote()
+  const { vote, previewVote, clearPreview } = useQuadraticVote()
+
+  /**
+   * Hover *and* focus, so the price is reachable by keyboard too. Without the
+   * preview the two buttons look identical whether the next vote costs 1 credit
+   * or 15.
+   */
+  const previewProps = (delta: number) => ({
+    onMouseEnter: () => previewVote(question.id, delta),
+    onMouseLeave: clearPreview,
+    onFocus: () => previewVote(question.id, delta),
+    onBlur: clearPreview,
+  })
 
   if (layout === 'stacked') {
     return (
@@ -113,6 +125,7 @@ export function QuestionRow({
               style={styles.voteButton}
               disabled={question.isDisabledDown}
               onClick={() => vote(question.id, -1)}
+              {...previewProps(-1)}
             >
               −
             </button>
@@ -122,6 +135,7 @@ export function QuestionRow({
               style={styles.voteButton}
               disabled={question.isDisabledUp}
               onClick={() => vote(question.id, 1)}
+              {...previewProps(1)}
             >
               +
             </button>
@@ -149,6 +163,7 @@ export function QuestionRow({
           style={styles.voteButton}
           disabled={question.isDisabledDown}
           onClick={() => vote(question.id, -1)}
+          {...previewProps(-1)}
         >
           −
         </button>
@@ -158,6 +173,7 @@ export function QuestionRow({
           style={styles.voteButton}
           disabled={question.isDisabledUp}
           onClick={() => vote(question.id, 1)}
+          {...previewProps(1)}
         >
           +
         </button>

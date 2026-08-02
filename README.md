@@ -171,18 +171,59 @@ Controls the order in which pool circles refill when credits come back from a di
 </QuadraticVote.Provider>
 ```
 
+### Previewing the cost of a vote
+
+The price of the next vote is the thing respondents cannot see: at 3 votes the
+next one costs 7, at 0 votes it costs 1, and the button looks identical either
+way. `useQuadraticVote()` exposes a preview so you can show it before they commit.
+
+```tsx
+const { previewVote, clearPreview, preview } = useQuadraticVote()
+
+<button
+  onMouseEnter={() => previewVote(q.id, 1)}
+  onMouseLeave={clearPreview}
+  onFocus={() => previewVote(q.id, 1)}   // hover alone is unusable by keyboard
+  onBlur={clearPreview}
+  onClick={() => vote(q.id, 1)}
+>
+  Vote up {preview ? `(${preview.cost})` : null}
+</button>
+```
+
+While a preview is active `<Pool>` paints the credits it would move in
+`previewColor` — the next free ones for a spend, the last spent ones for a
+refund. The preview clears itself once the vote is cast.
+
+`preview` is a `VotePreview`:
+
+| Field        | Type               | Description                                 |
+| ------------ | ------------------ | ------------------------------------------- |
+| `id`         | `string \| number` | Question it refers to                       |
+| `delta`      | `number`           | Delta being previewed, usually `+1`/`-1`    |
+| `nextVote`   | `number`           | Vote the question would land on             |
+| `cost`       | `number`           | Credits consumed, or returned when negative |
+| `affordable` | `boolean`          | Whether the budget allows it                |
+| `shortfall`  | `number`           | Credits missing when unaffordable, else `0` |
+
+> **`cost` is not `2n + 1`.** That only holds while a vote moves _away_ from
+> zero. Pressing "up" on a question sitting at `-3` moves it to `-2` and hands
+> **5 credits back**, so `cost` is negative there. Label your buttons from
+> `cost`, not from a formula, or half of them will be wrong.
+
 ### `<QuadraticVote.Pool>`
 
 Displays the credit pool showing available and used credits with animated transitions.
 
-| Prop            | Type      | Default   | Description                        |
-| --------------- | --------- | --------- | ---------------------------------- |
-| `columns`       | `number`  | `5`       | Number of columns in the pool grid |
-| `circleRadius`  | `number`  | `4`       | Radius of each credit circle       |
-| `circleSpacing` | `number`  | `4`       | Spacing between circles            |
-| `reverse`       | `boolean` | `false`   | Reverse the fill direction         |
-| `creditColor`   | `string`  | `'black'` | Color of used credits              |
-| `circleColor`   | `string`  | `'grey'`  | Color of available credits         |
+| Prop            | Type      | Default     | Description                           |
+| --------------- | --------- | ----------- | ------------------------------------- |
+| `columns`       | `number`  | `5`         | Number of columns in the pool grid    |
+| `circleRadius`  | `number`  | `4`         | Radius of each credit circle          |
+| `circleSpacing` | `number`  | `4`         | Spacing between circles               |
+| `reverse`       | `boolean` | `false`     | Reverse the fill direction            |
+| `creditColor`   | `string`  | `'black'`   | Color of used credits                 |
+| `circleColor`   | `string`  | `'grey'`    | Color of available credits            |
+| `previewColor`  | `string`  | `'#F59E0B'` | Color of credits a preview would move |
 
 ### `<QuadraticVote.LiquidPool>`
 

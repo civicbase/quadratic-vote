@@ -8,6 +8,11 @@ import { CreditsReadout, Panel, PlainBallot, Sandbox, shortQuestions } from './h
  * allocated and fly back when deallocated.
  *
  * Render **one** pool per Provider — two pools compete for the same flying credits.
+ *
+ * Hover or tab to a `-`/`+` button in the ballot to see what that vote would
+ * cost: the pool lights the exact credits it would take, or the ones it would
+ * hand back. Wire it with `previewVote(id, delta)` / `clearPreview()` from
+ * `useQuadraticVote()`.
  */
 const meta = {
   title: 'Components/Pool',
@@ -22,6 +27,7 @@ const meta = {
     reverse: { control: 'boolean' },
     creditColor: { control: 'color' },
     circleColor: { control: 'color' },
+    previewColor: { control: 'color' },
   },
   args: {
     columns: 5,
@@ -30,6 +36,7 @@ const meta = {
     reverse: false,
     creditColor: 'black',
     circleColor: 'grey',
+    previewColor: '#F59E0B',
   },
   render: (args) => (
     <Sandbox credits={36} questions={shortQuestions}>

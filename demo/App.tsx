@@ -65,6 +65,15 @@ function PoolRail({ poolKind, device }: { poolKind: PoolKind; device: Device }) 
   )
 }
 
+/**
+ * What pressing a thumb would cost. Not `2n + 1`: that only holds while a vote
+ * moves away from zero — thumbs-up on a question sitting at -3 hands 5 credits
+ * back rather than charging 7.
+ */
+function costOfPress(currentVote: number, delta: number) {
+  return Math.abs(currentVote + delta) ** 2 - Math.abs(currentVote) ** 2
+}
+
 function QuestionCard({ question, index }: { question: Question; index: number }) {
   const { vote } = useQuadraticVote()
   const { theme } = useTheme()
@@ -108,6 +117,9 @@ function QuestionCard({ question, index }: { question: Question; index: number }
       <div style={{ display: 'flex', gap: 12 }}>
         <VoteButton
           label='Vote in favour'
+          questionId={question.id}
+          delta={1}
+          cost={costOfPress(question.vote, 1)}
           onClick={() => vote(question.id, 1)}
           disabled={question.isDisabledUp}
           active={question.vote > 0}
@@ -117,6 +129,9 @@ function QuestionCard({ question, index }: { question: Question; index: number }
         </VoteButton>
         <VoteButton
           label='Vote against'
+          questionId={question.id}
+          delta={-1}
+          cost={costOfPress(question.vote, -1)}
           onClick={() => vote(question.id, -1)}
           disabled={question.isDisabledDown}
           active={question.vote < 0}
@@ -198,11 +213,18 @@ function Container() {
 }
 
 /**
- * Icon-only vote control. The thumb direction carries the meaning, so the label
- * lives in `aria-label`/`title` rather than on screen.
+ * Icon-only vote control with its price underneath. The thumb direction carries
+ * the meaning, so the label lives in `aria-label`/`title` rather than on screen —
+ * but the cost is spelled out, because the whole point is that it was invisible.
+ *
+ * Hovering or focusing also previews the cost in the pool. Focus matters as much
+ * as hover: a hover-only affordance is unusable by keyboard.
  */
 function VoteButton({
   label,
+  questionId,
+  delta,
+  cost,
   onClick,
   disabled,
   active,
@@ -210,6 +232,9 @@ function VoteButton({
   children,
 }: {
   label: string
+  questionId: string | number
+  delta: number
+  cost: number
   onClick: () => void
   disabled?: boolean
   active: boolean
@@ -217,38 +242,66 @@ function VoteButton({
   children: ReactNode
 }) {
   const { theme } = useTheme()
+  const { previewVote, clearPreview } = useQuadraticVote()
   const [hovered, setHovered] = useState(false)
 
   const background = active ? activeColor : hovered && !disabled ? theme.border : 'transparent'
+  const spends = cost > 0
+  const priceLabel = cost === 0 ? '—' : `${spends ? '−' : '+'}${Math.abs(cost)}`
+
+  const show = () => previewVote(questionId, delta)
+  const hide = () => clearPreview()
 
   return (
-    <button
-      type='button'
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      aria-pressed={active}
-      title={label}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 52,
-        height: 44,
-        borderRadius: 12,
-        border: `1px solid ${active ? activeColor : theme.border}`,
-        background,
-        color: active ? '#fff' : theme.textMuted,
-        padding: 0,
-        opacity: disabled ? 0.35 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
-      }}
-    >
-      {children}
-    </button>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <button
+        type='button'
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={`${label}, ${spends ? 'costs' : 'returns'} ${Math.abs(cost)} ${
+          Math.abs(cost) === 1 ? 'credit' : 'credits'
+        }`}
+        aria-pressed={active}
+        title={label}
+        onMouseEnter={() => {
+          setHovered(true)
+          show()
+        }}
+        onMouseLeave={() => {
+          setHovered(false)
+          hide()
+        }}
+        onFocus={show}
+        onBlur={hide}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 52,
+          height: 44,
+          borderRadius: 12,
+          border: `1px solid ${active ? activeColor : theme.border}`,
+          background,
+          color: active ? '#fff' : theme.textMuted,
+          padding: 0,
+          opacity: disabled ? 0.35 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
+        }}
+      >
+        {children}
+      </button>
+      <span
+        aria-hidden='true'
+        style={{
+          fontSize: 11,
+          fontVariantNumeric: 'tabular-nums',
+          color: disabled ? theme.border : spends ? theme.textMuted : theme.diamondPositive,
+        }}
+      >
+        {priceLabel}
+      </span>
+    </div>
   )
 }
 

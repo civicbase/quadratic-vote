@@ -18,6 +18,12 @@ export interface PoolProps {
   creditColor?: string
   /** Color of available/unused credits @default 'grey' */
   circleColor?: string
+  /**
+   * Color of the circles a previewed vote would move, set through
+   * `previewVote()` on the context. Shows the price of a vote before it is cast.
+   * @default '#F59E0B'
+   */
+  previewColor?: string
 }
 
 /**
@@ -42,8 +48,9 @@ function Pool({
   reverse = false,
   creditColor = 'black',
   circleColor = 'grey',
+  previewColor = '#F59E0B',
 }: PoolProps) {
-  const { credits, availableCredits } = useQuadraticVote()
+  const { credits, availableCredits, preview } = useQuadraticVote()
   const usedCredits = credits - availableCredits
   const [arriving, setArriving] = useState<Set<number>>(new Set())
   const [departing, setDeparting] = useState<Set<number>>(new Set())
@@ -97,6 +104,21 @@ function Pool({
     }
   }, [])
 
+  /**
+   * Half-open range of credits a preview would move, in fill order. Spending
+   * lights the next free credits; refunding lights the last spent ones.
+   */
+  const previewRange = useMemo(() => {
+    if (!preview || preview.cost === 0) return null
+    if (preview.cost > 0) {
+      // Only ever highlight what the budget can actually cover, so an
+      // unaffordable vote shows the shortfall rather than overflowing the pool.
+      const end = Math.min(credits, usedCredits + preview.cost)
+      return { from: usedCredits, to: end }
+    }
+    return { from: Math.max(0, usedCredits + preview.cost), to: usedCredits }
+  }, [preview, usedCredits, credits])
+
   const circles = useMemo(() => {
     const circleElements: JSX.Element[] = []
 
@@ -110,8 +132,14 @@ function Pool({
       // affected circle would recolour in the same frame. The in-flight sets
       // hold each circle at its *previous* state until its own credit actually
       // lands, which is what staggers the drain and the refill.
+      // `reverse` fills from the far end, so map the drawn circle back to its
+      // position in fill order before testing it against the preview range.
+      const fillOrderIndex = reverse ? credits - 1 - i : i
       const isUsedCredit = reverse ? i >= credits - usedCredits : i < usedCredits
       let fillColor = isUsedCredit ? creditColor : circleColor
+      if (previewRange && fillOrderIndex >= previewRange.from && fillOrderIndex < previewRange.to) {
+        fillColor = previewColor
+      }
       // Flying back: stay spent until this credit arrives.
       if (arriving.has(i)) fillColor = creditColor
       // Flying out: stay available until this credit has left.
@@ -142,6 +170,8 @@ function Pool({
     usedCredits,
     arriving,
     departing,
+    previewRange,
+    previewColor,
   ])
 
   const viewBox = useMemo(() => setViewBox(circles), [circles])

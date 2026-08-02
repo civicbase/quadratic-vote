@@ -18,6 +18,28 @@ export type Question = {
 }
 
 /**
+ * What a prospective vote would cost, without casting it.
+ *
+ * Note the cost is signed and is *not* simply `2n + 1`: that only holds while a
+ * vote moves away from zero. Pressing "up" on a question sitting at -3 moves it
+ * to -2 and hands 5 credits back, so `cost` is negative there.
+ */
+export interface VotePreview {
+  /** Question the preview refers to */
+  id: string | number
+  /** Vote delta being previewed, usually +1 or -1 */
+  delta: number
+  /** Vote the question would end up on */
+  nextVote: number
+  /** Credits it would consume, or return when negative */
+  cost: number
+  /** Whether the budget allows it */
+  affordable: boolean
+  /** Credits missing when unaffordable, otherwise 0 */
+  shortfall: number
+}
+
+/**
  * Context value provided by QuadraticVoteProvider
  */
 export interface QuadraticVoteType {
@@ -31,6 +53,15 @@ export interface QuadraticVoteType {
   availableCredits: number
   /** Function to reset all votes to zero */
   reset: () => void
+  /**
+   * Cost of a vote that has not been cast. Pool highlights the credits it would
+   * move; read it yourself to label the control that triggered it.
+   */
+  preview: VotePreview | null
+  /** Show what `vote(id, delta)` would cost. Pair with `clearPreview`. */
+  previewVote: (id: string | number, delta: number) => void
+  /** Drop the current preview. */
+  clearPreview: () => void
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -74,6 +105,7 @@ const QuadraticVoteProvider = ({
   const [questions, setQuestions] = useState(qs)
 
   const [availableCredits, setAvailableCredits] = useState(credits)
+  const [preview, setPreview] = useState<VotePreview | null>(null)
 
   useEffect(() => {
     const nextAvailable = credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
@@ -104,6 +136,34 @@ const QuadraticVoteProvider = ({
     return simulatedCost <= credits
   }
 
+  /**
+   * Cost lives next to `canVote` deliberately: a preview that disagrees with
+   * what is actually affordable is worse than no preview at all.
+   */
+  const costOf = (id: string | number, delta: number) => {
+    const current = questions.find((q) => q.id === id)?.vote ?? 0
+    const nextVote = current + delta
+    return {
+      nextVote,
+      cost: Math.abs(nextVote) ** 2 - Math.abs(current) ** 2,
+    }
+  }
+
+  const previewVote = (id: string | number, delta: number) => {
+    const { nextVote, cost } = costOf(id, delta)
+    const affordable = canVote(questions, id, nextVote)
+    setPreview({
+      id,
+      delta,
+      nextVote,
+      cost,
+      affordable,
+      shortfall: affordable ? 0 : Math.max(0, cost - availableCredits),
+    })
+  }
+
+  const clearPreview = () => setPreview(null)
+
   const vote = (id: string | number, voteAmount: number) => {
     if (canVote(questions, id, voteAmount)) {
       const prevQuestion = questions.find((q) => q.id === id)
@@ -128,6 +188,8 @@ const QuadraticVoteProvider = ({
       const nextUsed = newQuestions.reduce((acc, q) => acc + q.vote ** 2, 0)
 
       setQuestions(newQuestions)
+      // The numbers it described are now stale.
+      setPreview(null)
 
       // launch animation for increases or decreases
       const delta = nextUsed - prevUsed
@@ -180,6 +242,9 @@ const QuadraticVoteProvider = ({
         questions,
         reset,
         vote,
+        preview,
+        previewVote,
+        clearPreview,
       }}
     >
       {children}

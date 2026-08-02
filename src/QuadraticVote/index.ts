@@ -20,7 +20,7 @@ export { default as useQuadraticVote } from './useQuadraticVote'
 export { default as VoteAnimation } from './VoteAnimation'
 
 // Type exports
-export type { Question, QuadraticVoteType } from './QuadraticVoteProvider'
+export type { Question, QuadraticVoteType, VotePreview } from './QuadraticVoteProvider'
 export type { DiamondProps } from './Diamond'
 export type { PoolProps } from './Pool'
 export type { LiquidPoolProps } from './LiquidPool'
