@@ -1,4 +1,4 @@
-import React, { ReactNode, createContext, useEffect, useState } from 'react'
+import React, { ReactNode, createContext, useEffect, useMemo, useRef, useState } from 'react'
 import VoteAnimation, { LaunchAnimationPayload, ReturnOrder } from './VoteAnimation'
 
 /**
@@ -62,6 +62,17 @@ export interface QuadraticVoteType {
   previewVote: (id: string | number, delta: number) => void
   /** Drop the current preview. */
   clearPreview: () => void
+  /**
+   * What `vote(id, delta)` would cost, without casting it and without touching
+   * `preview`.
+   *
+   * `preview` is driven by hover, so it can only ever describe one control at a
+   * time. A UI that labels both an up and a down control at once — or that
+   * shows a price on a touch device, where there is no hover — needs the same
+   * numbers without the state. This is the function behind `previewVote`, so
+   * the two can never disagree.
+   */
+  costOf: (id: string | number, delta: number) => VotePreview
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -103,14 +114,25 @@ const QuadraticVoteProvider = ({
   returnOrder?: ReturnOrder
 }) => {
   const [questions, setQuestions] = useState(qs)
-
-  const [availableCredits, setAvailableCredits] = useState(credits)
   const [preview, setPreview] = useState<VotePreview | null>(null)
 
+  /**
+   * `vote` reads the ballot through this rather than through `questions`.
+   *
+   * Reading the state variable meant every press in a single tick started from
+   * the same snapshot and overwrote the last, so a burst of clicks — a fast
+   * double-click, a test firing without awaiting a render — collapsed into one
+   * registered vote.
+   */
+  const questionsRef = useRef(questions)
   useEffect(() => {
-    const nextAvailable = credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
-    setAvailableCredits(nextAvailable)
-  }, [questions, credits])
+    questionsRef.current = questions
+  }, [questions])
+
+  // Derived, not stored: held in state it trailed the ballot by a render, and
+  // anything reading it during that gap — a shortfall, a disabled control —
+  // was answering with the previous question's budget.
+  const availableCredits = credits - questions.reduce((acc, q) => acc + q.vote ** 2, 0)
 
   useEffect(() => {
     if (credits < 4) {
@@ -140,53 +162,67 @@ const QuadraticVoteProvider = ({
    * Cost lives next to `canVote` deliberately: a preview that disagrees with
    * what is actually affordable is worse than no preview at all.
    */
-  const costOf = (id: string | number, delta: number) => {
+  const costOf = (id: string | number, delta: number): VotePreview => {
     const current = questions.find((q) => q.id === id)?.vote ?? 0
     const nextVote = current + delta
-    return {
-      nextVote,
-      cost: Math.abs(nextVote) ** 2 - Math.abs(current) ** 2,
-    }
-  }
-
-  const previewVote = (id: string | number, delta: number) => {
-    const { nextVote, cost } = costOf(id, delta)
+    const cost = Math.abs(nextVote) ** 2 - Math.abs(current) ** 2
     const affordable = canVote(questions, id, nextVote)
-    setPreview({
+
+    return {
       id,
       delta,
       nextVote,
       cost,
       affordable,
       shortfall: affordable ? 0 : Math.max(0, cost - availableCredits),
-    })
+    }
   }
+
+  const previewVote = (id: string | number, delta: number) => setPreview(costOf(id, delta))
 
   const clearPreview = () => setPreview(null)
 
-  const vote = (id: string | number, voteAmount: number) => {
-    if (canVote(questions, id, voteAmount)) {
-      const prevQuestion = questions.find((q) => q.id === id)
-      const prevAbs = Math.abs(prevQuestion?.vote ?? 0)
-      const updatedQuestions = questions.map((q) => {
-        if (q.id === id) {
-          return { ...q, vote: q.vote + voteAmount }
-        }
-        return q
-      })
+  /**
+   * Affordability flags, derived on read rather than written when a vote lands.
+   *
+   * Stored, they were only ever filled in by `vote`, so before the first press
+   * they were `undefined` and a UI driving its controls off them started with
+   * every button enabled. They also went stale whenever `credits` changed
+   * underneath a ballot that had not been touched since.
+   */
+  const decoratedQuestions = useMemo(
+    () =>
+      questions.map((question) => ({
+        ...question,
+        isDisabledUp: !canVote(questions, question.id, question.vote + 1),
+        isDisabledDown: !canVote(questions, question.id, question.vote - 1),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [questions, credits],
+  )
 
-      const newQuestions = updatedQuestions.map((q) => {
-        return {
-          ...q,
-          isDisabledUp: !canVote(updatedQuestions, q.id, q.vote + 1),
-          isDisabledDown: !canVote(updatedQuestions, q.id, q.vote - 1),
-        }
-      })
+  const vote = (id: string | number, voteAmount: number) => {
+    const current = questionsRef.current
+    const prevQuestion = current.find((q) => q.id === id)
+    const prevVote = prevQuestion?.vote ?? 0
+
+    // The second argument is the vote the question would *land on*, not the
+    // delta. Passing the delta priced a press on a question already at 5 as if
+    // it were a press to 1, so a custom UI that trusted `vote` rather than the
+    // disabled flags could spend past the budget.
+    if (canVote(current, id, prevVote + voteAmount)) {
+      const prevAbs = Math.abs(prevVote)
+      const newQuestions = current.map((q) =>
+        q.id === id ? { ...q, vote: q.vote + voteAmount } : q,
+      )
 
       // compute used credits before and after
-      const prevUsed = questions.reduce((acc, q) => acc + q.vote ** 2, 0)
+      const prevUsed = current.reduce((acc, q) => acc + q.vote ** 2, 0)
       const nextUsed = newQuestions.reduce((acc, q) => acc + q.vote ** 2, 0)
 
+      // Advance the ref before returning, so a second press in this same tick
+      // starts from this ballot rather than from the one React last rendered.
+      questionsRef.current = newQuestions
       setQuestions(newQuestions)
       // The numbers it described are now stale.
       setPreview(null)
@@ -224,14 +260,10 @@ const QuadraticVoteProvider = ({
   }
 
   const reset = () => {
-    setQuestions(
-      questions.map((question) => ({
-        ...question,
-        vote: 0,
-        isDisabledDown: false,
-        isDisabledUp: false,
-      })),
-    )
+    const cleared = questionsRef.current.map((question) => ({ ...question, vote: 0 }))
+    questionsRef.current = cleared
+    setQuestions(cleared)
+    setPreview(null)
   }
 
   return (
@@ -239,12 +271,13 @@ const QuadraticVoteProvider = ({
       value={{
         credits,
         availableCredits,
-        questions,
+        questions: decoratedQuestions,
         reset,
         vote,
         preview,
         previewVote,
         clearPreview,
+        costOf,
       }}
     >
       {children}

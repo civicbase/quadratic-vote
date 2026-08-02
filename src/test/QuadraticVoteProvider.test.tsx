@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { act, render, renderHook } from '@testing-library/react'
+import { act, cleanup, render, renderHook } from '@testing-library/react'
 import React, { ReactNode } from 'react'
 import { useQuadraticVote } from '../QuadraticVote'
 import { questions } from './test-utils'
@@ -16,6 +16,11 @@ describe('<QuadraticVoteProvider/>', () => {
     </QuadraticVoteProvider>
   )
 
+  // The suite runs every file in one jsdom (`singleFork`), and each Provider
+  // mounts a VoteAnimation that listens on `window`. Left mounted, they answer
+  // launch events fired by later files and duplicate their flights.
+  afterEach(cleanup)
+
   it('renders without crashing', () => {
     const { result } = renderHook(() => useQuadraticVote(), { wrapper })
 
@@ -27,7 +32,37 @@ describe('<QuadraticVoteProvider/>', () => {
 
     expect(result.current.credits).toBe(CREDITS)
     expect(result.current.availableCredits).toBe(CREDITS)
-    expect(result.current.questions).toBe(questions)
+    expect(result.current.questions).toMatchObject(
+      questions.map(({ id, vote }) => ({ id, vote })),
+    )
+  })
+
+  it('reports affordability before the first vote is cast', () => {
+    const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+
+    // Written on vote rather than derived, these were `undefined` here, so a UI
+    // driving its own controls off them opened with every button enabled.
+    for (const question of result.current.questions) {
+      expect(question.isDisabledUp).toBe(false)
+      expect(question.isDisabledDown).toBe(false)
+    }
+  })
+
+  it('disables both directions once the budget is exhausted', () => {
+    const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+    const [first] = questions
+
+    act(() => {
+      for (let i = 0; i < 10; i++) result.current.vote(first.id, 1)
+    })
+
+    expect(result.current.availableCredits).toBe(ZERO)
+
+    const untouched = result.current.questions.filter((q) => q.id !== first.id)
+    for (const question of untouched) {
+      expect(question.isDisabledUp).toBe(true)
+      expect(question.isDisabledDown).toBe(true)
+    }
   })
 
   describe('handle erros', () => {
@@ -186,5 +221,102 @@ describe('<QuadraticVoteProvider/>', () => {
         expect(result.current.questions[i].isDisabledDown).toBeTruthy()
       }
     }
+  })
+
+  /**
+   * The guarantees a UI built on this API relies on, none of which the bundled
+   * Pool and Diamond exercise — they read the disabled flags and never press
+   * faster than React renders.
+   */
+  describe('building a UI on the API', () => {
+    it('registers every press in a burst, not just the last', () => {
+      const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+      const [first] = questions
+
+      // No re-render between these: `vote` used to read the state variable, so
+      // all three started from the same ballot and only one survived.
+      act(() => {
+        result.current.vote(first.id, 1)
+        result.current.vote(first.id, 1)
+        result.current.vote(first.id, 1)
+      })
+
+      expect(result.current.questions[0].vote).toBe(3)
+      expect(result.current.availableCredits).toBe(CREDITS - 9)
+    })
+
+    it('refuses a press that would overspend, even without the disabled flags', () => {
+      const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+      const [first, second] = questions
+
+      // 8² + 6² = 100, the whole budget.
+      act(() => {
+        for (let i = 0; i < 8; i++) result.current.vote(first.id, 1)
+        for (let i = 0; i < 6; i++) result.current.vote(second.id, 1)
+      })
+      expect(result.current.availableCredits).toBe(ZERO)
+
+      // Going to 9 costs 17 more than the budget allows. The affordability
+      // check was handed the delta rather than the resulting vote, so it priced
+      // this as a move to 1 — costing 1 — and waved it through.
+      act(() => {
+        result.current.vote(first.id, 1)
+      })
+
+      expect(result.current.questions[0].vote).toBe(8)
+      expect(result.current.questions[1].vote).toBe(6)
+      expect(result.current.availableCredits).toBe(ZERO)
+    })
+
+    it('prices a press without hovering it', () => {
+      const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+      const [first] = questions
+
+      act(() => {
+        for (let i = 0; i < 3; i++) result.current.vote(first.id, 1)
+      })
+
+      // Not 2n+1: that only holds moving away from zero.
+      expect(result.current.costOf(first.id, 1)).toMatchObject({ nextVote: 4, cost: 7 })
+      expect(result.current.costOf(first.id, -1)).toMatchObject({ nextVote: 2, cost: -5 })
+
+      // Reading a price must not leave a preview behind — both controls in a
+      // row get priced on every render.
+      expect(result.current.preview).toBeNull()
+    })
+
+    it('agrees with previewVote', () => {
+      const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+      const [first] = questions
+
+      act(() => {
+        result.current.previewVote(first.id, 1)
+      })
+
+      expect(result.current.preview).toEqual(result.current.costOf(first.id, 1))
+    })
+
+    it('reports what an unaffordable press is short by', () => {
+      const { result } = renderHook(() => useQuadraticVote(), { wrapper })
+      const [first, second] = questions
+
+      act(() => {
+        for (let i = 0; i < 9; i++) result.current.vote(first.id, 1)
+      })
+
+      // 19 credits left, and a first vote elsewhere costs 1 — affordable.
+      expect(result.current.costOf(second.id, 1)).toMatchObject({
+        affordable: true,
+        shortfall: 0,
+      })
+
+      // Going to 10 on the first question costs 19 more than the 81 already
+      // spent, which is exactly the budget — affordable to the credit.
+      expect(result.current.costOf(first.id, 1)).toMatchObject({
+        cost: 19,
+        affordable: true,
+        shortfall: 0,
+      })
+    })
   })
 })
