@@ -26,7 +26,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          # The Chromatic CLI requires Node 20+; 22 matches the top of the CI
+          # matrix. It is not a devDependency — chromaui/action brings its own,
+          # and adding it to the tree pulled native bindings whose nested
+          # optional deps npm failed to record for Linux, breaking `npm ci`.
+          node-version: '22.x'
           cache: 'npm'
 
       - name: Install dependencies
