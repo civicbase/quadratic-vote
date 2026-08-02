@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { clamp01, poolColorAmount } from './geometry'
 
 export type LaunchAnimationPayload =
   | {
@@ -42,10 +43,6 @@ type Flight = {
 }
 
 const EASING = (t: number) => 1 - Math.pow(1 - t, 3)
-
-function clamp01(n: number) {
-  return Math.max(0, Math.min(1, n))
-}
 
 type Rgb = [number, number, number]
 
@@ -140,18 +137,10 @@ const LANDING_COLOR_AT = 0.5
 const COLOR_FADE_MS = 200
 
 /**
- * Where a credit starts and finishes taking on the pool's colour, as multiples
- * of the pool's influence radius. It ends outside the boundary so the credit has
- * already become liquid-coloured before it arrives, never during.
- */
-const COLOR_FADE_FROM = 2.6
-const COLOR_FADE_TO = 1.15
-
-/**
  * A LiquidPool publishes the radius within which a credit counts as part of the
  * liquid. Inside it the credit hands its shape over to the pool's gooey layer,
  * which is the only place it can actually deform; outside it stays a plain
- * credit. Colour is not decided here — see `LANDING_COLOR_AT`.
+ * credit. Colour is decided by `poolColorAmount`.
  */
 function getPoolInfluence(): { x: number; y: number; radius: number } | null {
   const pool = document.querySelector('[data-liquid-pool="true"][data-influence]')
@@ -501,10 +490,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
         // distance — it is deep inside the pool before a time-based fade has
         // even started. Interpolating per frame also means no CSS transition
         // trailing behind, which is what left a half-green ring on the liquid.
-        const fadeFrom = influence.radius * COLOR_FADE_FROM
-        const fadeTo = influence.radius * COLOR_FADE_TO
-        const amount = clamp01((fadeFrom - distance) / Math.max(1, fadeFrom - fadeTo))
-        background = mixColors(f.color, f.landingColor, amount)
+        background = mixColors(f.color, f.landingColor, poolColorAmount(distance, influence.radius))
       } else {
         // The grid Pool has no boundary, so fall back to switching half way.
         background = t >= LANDING_COLOR_AT ? f.landingColor : f.color

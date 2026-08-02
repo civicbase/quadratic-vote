@@ -1,5 +1,13 @@
 import React, { useEffect, useId, useMemo, useRef } from 'react'
 import { useQuadraticVote } from '.'
+import {
+  clamp01,
+  DROPLET_MAX_SCALE,
+  DROPLET_MIN_SCALE,
+  influenceRadiusFor,
+  ORBIT_BOB,
+  prunePending,
+} from './geometry'
 
 export type LiquidPoolDirection = 'toDiamond' | 'toPool'
 
@@ -58,6 +66,7 @@ export interface LiquidPoolProps {
 
 /** Lobes making up the main blob. Odd numbers avoid a symmetrical silhouette. */
 const MAIN_LOBES = 5
+
 /** Concurrent splash droplets. Fixed so the render never has to change shape. */
 const BURST_SLOTS = 14
 /**
@@ -88,10 +97,6 @@ type Burst = {
 function noise(i: number, salt: number) {
   const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453
   return x - Math.floor(x)
-}
-
-function clamp01(n: number) {
-  return Math.max(0, Math.min(1, n))
 }
 
 function safeKeySuffix(id: string) {
@@ -307,11 +312,7 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       const anchorEls = anchorsRef.current
         ? (anchorsRef.current.children as unknown as HTMLElement[])
         : null
-      // Drop anything that has outlived a plausible flight before counting it,
-      // so a missed arrival cannot hold the pool down permanently.
-      for (const [index, stamp] of pendingIn.current) {
-        if (clock.current - stamp > PENDING_TTL_MS) pendingIn.current.delete(index)
-      }
+      prunePending(pendingIn.current, clock.current, PENDING_TTL_MS)
       const { credits: totalCredits, availableCredits: available } = budget.current
       const fill =
         totalCredits > 0 ? clamp01((available - pendingIn.current.size) / totalCredits) : 0
@@ -335,7 +336,7 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       // `radius + spreadPx * 1.09`, and a credit landing on one has to cross
       // into the liquid before it gets there. Published so VoteAnimation hands
       // over at exactly the same boundary instead of both of them guessing.
-      const influence = radius * 1.35 + spreadPx * 1.25
+      const influence = influenceRadiusFor(radius, spreadPx)
       const box = boxRef.current
       if (box) box.setAttribute('data-influence', String(Math.round(influence)))
 
@@ -417,12 +418,13 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
 
         const presence = clamp01(active - k2)
         // 15%–35% of the main blob, varied per droplet.
-        const satR = radius * (0.15 + 0.2 * frac) * presence
+        const satR =
+          radius * (DROPLET_MIN_SCALE + (DROPLET_MAX_SCALE - DROPLET_MIN_SCALE) * frac) * presence
         const dir = seedC > 0.5 ? 1 : -1
         const angle = seedA * Math.PI * 2 + t * drift * (0.35 + 0.5 * seedB) * dir
         const orbit =
           radius +
-          spreadPx * (0.3 + 0.7 * frac) * (1 + 0.09 * Math.sin(t * drift * 1.7 + seedB * 6.3))
+          spreadPx * (0.3 + 0.7 * frac) * (1 + ORBIT_BOB * Math.sin(t * drift * 1.7 + seedB * 6.3))
         const cx = centre + Math.cos(angle) * orbit
         const cy = centre + Math.sin(angle) * orbit
 
