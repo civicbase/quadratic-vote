@@ -8,7 +8,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -17,9 +17,8 @@
     "skipLibCheck": true,
      "esModuleInterop": true ,
      "declarationMap": true,
-    "baseUrl": ".",
      "paths": {
-      "quadratic-vote": [ "src/QuadraticVote/index.ts" ]
+      "quadratic-vote": ["./src/QuadraticVote/index.ts"]
     },
     "typeRoots": [
       "node_modules/@types",

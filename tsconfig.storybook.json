@@ -3,11 +3,12 @@
   // path (`tsconfig.json` -> `npm run type-check` -> `prepublishOnly`) never
   // depends on documentation code.
   //
-  // Storybook's packages ship `exports` maps, which the library's classic
-  // `moduleResolution: "Node"` cannot read. Only the stories opt into "Bundler".
+  // It used to also switch moduleResolution, because the library was on the
+  // classic "Node" strategy which cannot read the `exports` maps Storybook's
+  // packages ship. TypeScript 7 removed that strategy, so the base config is
+  // "Bundler" and this inherits it.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "moduleResolution": "Bundler",
     "noEmit": true,
     "types": ["node"]
   },

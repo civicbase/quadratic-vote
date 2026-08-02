@@ -1,7 +1,14 @@
-import type { TestingLibraryMatchers } from '@testing-library/jest-dom/matchers'
-import { afterEach, expect } from 'vitest'
-import * as matchers from '@testing-library/jest-dom/matchers'
+import '@testing-library/jest-dom/vitest'
+import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
+
+/**
+ * Importing `@testing-library/jest-dom/vitest` registers the matchers *and*
+ * their types. Version 7 declares the module augmentation itself, so the hand
+ * written `interface Assertion extends jest.Matchers, TestingLibraryMatchers`
+ * that used to live here now collides with it — the two spellings of each
+ * matcher are not identical and TypeScript refuses both.
+ */
 
 /**
  * Every test file shares one jsdom (`pool: 'forks'`, `singleFork: true`), and
@@ -11,10 +18,3 @@ import { cleanup } from '@testing-library/react'
  * the failure lands somewhere other than the file that caused it.
  */
 afterEach(cleanup)
-
-declare module 'vitest' {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  interface Assertion<T = any> extends jest.Matchers<void, T>, TestingLibraryMatchers<T, void> {}
-}
-
-expect.extend(matchers)
