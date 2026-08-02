@@ -60,6 +60,12 @@ export interface LiquidPoolProps {
 const MAIN_LOBES = 5
 /** Concurrent splash droplets. Fixed so the render never has to change shape. */
 const BURST_SLOTS = 14
+/**
+ * Circles standing in for credits currently flying near the pool. They live
+ * inside the goo filter, which is the only way a credit can actually deform and
+ * merge — VoteAnimation draws its own dots in a plain overlay outside the SVG.
+ */
+const GUEST_SLOTS = 12
 const BURST_MS = 780
 /** Matches the old anchor: VoteAnimation sizes the flying credit from this box. */
 const ANCHOR_PX = 10
@@ -158,6 +164,7 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
   const gRef = useRef<SVGGElement | null>(null)
   const anchorsRef = useRef<HTMLDivElement | null>(null)
   const blurRef = useRef<SVGFEGaussianBlurElement | null>(null)
+  const guestsRef = useRef<SVGGElement | null>(null)
   /**
    * Animation time, accumulated from clamped frame deltas. Splashes are stamped
    * and measured against this rather than a wall clock: it never jumps, so a
@@ -180,8 +187,16 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
   const boxRef = useRef<HTMLDivElement | null>(null)
 
   /** Target fill, read by the loop without restarting it. */
-  const fillTarget = useRef(1)
-  fillTarget.current = credits > 0 ? clamp01(availableCredits / credits) : 0
+  /**
+   * Credits heading back to the pool that have not landed yet. `availableCredits`
+   * jumps the moment the vote is cast, which would pop the new droplet into
+   * existence before its credit has arrived. Holding them back means the credit
+   * gets there first and the droplet forms around it.
+   */
+  const inbound = useRef(0)
+
+  const budget = useRef({ credits, availableCredits })
+  budget.current = { credits, availableCredits }
 
   const config = useRef({
     minRadius,
@@ -281,7 +296,8 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       const anchorEls = anchorsRef.current
         ? (anchorsRef.current.children as unknown as HTMLElement[])
         : null
-      const fill = fillTarget.current
+      const { credits: totalCredits, availableCredits: available } = budget.current
+      const fill = totalCredits > 0 ? clamp01((available - inbound.current) / totalCredits) : 0
       const t = elapsed / 1000
       const drift = (Math.PI * 2) / Math.max(1, driftSeconds)
 
@@ -295,6 +311,54 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       // as the blob shrinks, and eventually the blob itself.
       if (blurRef.current) {
         blurRef.current.setAttribute('stdDeviation', String(Math.max(1.2, radius * viscosity)))
+      }
+
+      // Distance from the centre within which a credit belongs to the liquid.
+      // Published so VoteAnimation hands over at exactly the same boundary
+      // instead of both of them guessing.
+      const influence = radius * 1.25 + spreadPx * 0.95
+      const box = boxRef.current
+      if (box) box.setAttribute('data-influence', String(Math.round(influence)))
+
+      // --- credits currently flying near the pool ---
+      // Drawn here rather than left to VoteAnimation's overlay, because only a
+      // shape inside the filter can stretch toward the blob and fuse with it.
+      const guestGroup = guestsRef.current
+      if (guestGroup && box) {
+        const guests = guestGroup.children as unknown as SVGCircleElement[]
+        const rect = box.getBoundingClientRect()
+        // The SVG sits at -pad on both axes and is unscaled, so screen-to-local
+        // is a straight translation.
+        const originX = rect.left + rect.width / 2 - centre
+        const originY = rect.top + rect.height / 2 - centre
+        const overlay = document.getElementById('animation-overlay')
+        const dots = overlay ? (overlay.children as unknown as HTMLElement[]) : []
+
+        let used = 0
+        for (let d = 0; d < dots.length && used < GUEST_SLOTS; d++) {
+          const dot = dots[d]
+          const box2 = dot.getBoundingClientRect()
+          if (!box2.width) continue
+          const lx = box2.left + box2.width / 2 - originX
+          const ly = box2.top + box2.height / 2 - originY
+          const dist = Math.hypot(lx - centre, ly - centre)
+          if (dist > influence) continue
+
+          // Swell as it nears the blob so the two reach for each other, which is
+          // what makes the merge read as liquid rather than a circle overlapping.
+          const nearness = 1 - clamp01(dist / Math.max(1, influence))
+          const el = guests[used]
+          if (el) {
+            el.setAttribute('cx', String(lx))
+            el.setAttribute('cy', String(ly))
+            el.setAttribute('r', String((box2.width / 2) * (1 + nearness * 1.35)))
+          }
+          used += 1
+        }
+        for (let g = used; g < GUEST_SLOTS; g++) {
+          const el = guests[g]
+          if (el) el.setAttribute('r', '0')
+        }
       }
 
       // --- main blob: overlapping lobes the filter fuses into one drop ---
@@ -449,8 +513,30 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
       slot.seed = noise(nextBurst.current, 7)
     }
 
+    /**
+     * A credit heading home is not part of the pool until it gets there. Holding
+     * it out of the fill until it lands is what makes the droplet form *around*
+     * the arriving credit instead of appearing the instant the vote is cast.
+     */
+    const countInbound = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.direction !== 'toPool') return
+      if (detail.phase === 'start') inbound.current += 1
+    }
+    const countLanded = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.direction !== 'toPool' || detail.phase !== 'end') return
+      inbound.current = Math.max(0, inbound.current - 1)
+    }
+
     window.addEventListener('qv:anim', handler as EventListener)
-    return () => window.removeEventListener('qv:anim', handler as EventListener)
+    window.addEventListener('qv:anim', countInbound as EventListener)
+    window.addEventListener('qv:anim-pool', countLanded as EventListener)
+    return () => {
+      window.removeEventListener('qv:anim', handler as EventListener)
+      window.removeEventListener('qv:anim', countInbound as EventListener)
+      window.removeEventListener('qv:anim-pool', countLanded as EventListener)
+    }
   }, [])
 
   const blurStd = Math.max(1.2, maxRadius * viscosity)
@@ -517,6 +603,14 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
           ))}
           {Array.from({ length: BURST_SLOTS }, (_, i) => (
             <circle key={`burst-${i}`} cx={centre} cy={centre} r={0} />
+          ))}
+        </g>
+
+        {/* Kept in its own group so the main loop can index it independently of
+            the lobes, droplets and splashes. */}
+        <g ref={guestsRef} filter={`url(#${gooId})`} fill={inkColor}>
+          {Array.from({ length: GUEST_SLOTS }, (_, i) => (
+            <circle key={`guest-${i}`} cx={centre} cy={centre} r={0} />
           ))}
         </g>
       </svg>

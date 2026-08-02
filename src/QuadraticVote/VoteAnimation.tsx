@@ -43,6 +43,10 @@ type Flight = {
 
 const EASING = (t: number) => 1 - Math.pow(1 - t, 3)
 
+function clamp01(n: number) {
+  return Math.max(0, Math.min(1, n))
+}
+
 /** Base time a single credit spends in flight. */
 const FLIGHT_DURATION_MS = 650
 /** A credit's source circle is cleared shortly after it sets off. */
@@ -66,17 +70,29 @@ function staggerFor(count: number) {
 
 /**
  * Fraction of the trip after which a credit takes on its landing colour, and how
- * long that cross-fade lasts. A credit returning from a diamond carries the vote
- * colour (green/red) for the first half of the journey, then turns into a pool
- * credit over the second half — so it has already arrived as one by the time it
- * merges. Works the same against the grid Pool and the LiquidPool, since both
- * declare their landing colour.
+ * long that cross-fade lasts. Used when the pool has no influence radius of its
+ * own — the grid Pool, where "near the pool" has no meaning.
  *
  * The fade must finish before the credit is removed at the end of its flight, or
  * it lands mid-blend: 0.5 * 650ms + 200ms = 525ms, comfortably inside 650ms.
  */
 const LANDING_COLOR_AT = 0.5
 const COLOR_FADE_MS = 200
+
+/**
+ * A LiquidPool publishes the radius within which a credit counts as part of the
+ * liquid. Inside it the credit wears the pool colour and hands its shape over to
+ * the pool's gooey layer, which is the only place it can actually deform; outside
+ * it keeps its own colour and stays a plain credit.
+ */
+function getPoolInfluence(): { x: number; y: number; radius: number } | null {
+  const pool = document.querySelector('[data-liquid-pool="true"][data-influence]')
+  if (!pool) return null
+  const radius = Number(pool.getAttribute('data-influence'))
+  if (!Number.isFinite(radius) || radius <= 0) return null
+  const rect = pool.getBoundingClientRect()
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, radius }
+}
 
 function getNodeScreenRect(node: Element) {
   const bbox = node.getBoundingClientRect()
@@ -388,6 +404,7 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
       const y = fromRect.y + (toRect.y - fromRect.y) * eased
       const r = fromRect.r
       const opacity = t < 0.1 ? t / 0.1 : 1
+
       const scale = t < 0.2 ? 0.8 + 0.2 * (t / 0.2) : 1
       // Droplet-like scaling: shrink a bit on extraction/absorption.
       let dropletScale = 1
@@ -399,7 +416,18 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
         if (t > 0.7) dropletScale = 1 - 0.45 * ((t - 0.7) / 0.3)
       }
       const size = r * scale * dropletScale
-      const background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
+
+      // Prefer the pool's own boundary when it has one: a credit should turn
+      // into liquid because it has reached the liquid, not because a timer said
+      // so. Falling back to the time-based switch keeps the grid Pool unchanged.
+      const influence = getPoolInfluence()
+      let background = t >= LANDING_COLOR_AT ? f.landingColor : f.color
+      let handover = 0
+      if (influence) {
+        const distance = Math.hypot(x - influence.x, y - influence.y)
+        handover = 1 - clamp01(distance / influence.radius)
+        background = handover > 0 ? f.landingColor : f.color
+      }
       const style: React.CSSProperties = {
         position: 'fixed',
         left: `${x - size}px`,
@@ -408,7 +436,10 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({
         height: `${size * 2}px`,
         borderRadius: '50%',
         background,
-        opacity,
+        // Inside the pool the liquid draws this credit instead, as a shape that
+        // can stretch and merge. Drawing both would show a crisp circle riding
+        // on top of the blob it is supposed to be melting into.
+        opacity: handover > 0 ? opacity * (1 - clamp01(handover * 1.6)) : opacity,
         willChange: 'transform, left, top, opacity',
         transition: `opacity 120ms linear, background-color ${COLOR_FADE_MS}ms linear`,
         transform: 'translateZ(0)',

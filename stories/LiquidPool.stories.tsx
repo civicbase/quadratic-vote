@@ -18,6 +18,11 @@ import { Ballot, CreditsReadout, Panel, Sandbox, shortQuestions } from './harnes
  * Spend and refund credits in the ballot beside it to watch the pool drain and
  * refill — droplets dry out one at a time as the budget runs down, and each credit
  * leaving or arriving throws a splash off the surface facing its diamond.
+ *
+ * Credits are handed over at the liquid's edge: beyond it they are plain credits
+ * in their own colour, inside it the pool draws them within its filter so they
+ * stretch and fuse. A returning credit is kept out of the balance until it lands,
+ * so the droplet forms around it rather than beating it there.
  */
 const meta = {
   title: 'Components/LiquidPool',

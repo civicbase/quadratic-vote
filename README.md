@@ -239,6 +239,13 @@ clipped.
 
 `size` reserves a square footprint for layout; the liquid drifts freely outside it.
 
+A credit flying to or from the pool is handed over at the liquid's edge: outside
+it, it is a plain credit in its own colour; inside, the pool takes over drawing it
+as a shape within the gooey filter, so it stretches toward the blob and merges
+instead of sitting on top as a crisp circle. A credit coming home is also held
+out of the balance until it actually lands, so a new droplet forms _around_ the
+arriving credit rather than appearing the moment the vote is cast.
+
 ```tsx
 <QuadraticVote.LiquidPool size={140} inkColor='#38BDF8' droplets={7} />
 ```
