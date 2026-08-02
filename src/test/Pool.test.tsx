@@ -212,11 +212,24 @@ describe('Pool Component', () => {
     })
 
     it('drains each circle on its own schedule rather than all at once', async () => {
-      // The Provider mounts a real VoteAnimation, which schedules its own start
-      // and end events on timers. Left running it landed extra credits partway
-      // through the assertions, so the counts drifted by one on a slow runner.
-      // Frozen, the only events in play are the ones this test sends.
-      vi.useFakeTimers()
+      // The Provider mounts a real VoteAnimation, which announces its own
+      // starts and endings. Left running it landed extra credits partway
+      // through the assertions, so the counts drifted on a slow runner.
+      //
+      // Faking the timers alone was not enough: its frame loop is driven by
+      // requestAnimationFrame, which vitest does not fake by default, so it
+      // kept dispatching. With both frozen the only events in play are the
+      // ones this test sends.
+      vi.useFakeTimers({
+        toFake: [
+          'setTimeout',
+          'clearTimeout',
+          'setInterval',
+          'clearInterval',
+          'requestAnimationFrame',
+          'cancelAnimationFrame',
+        ],
+      })
       const { container } = render(<Setup />)
 
       // Three votes cost 9 credits at once.
