@@ -120,6 +120,7 @@ function QuestionCard({ question, index }: { question: Question; index: number }
           questionId={question.id}
           delta={1}
           cost={costOfPress(question.vote, 1)}
+          hasVote={question.vote !== 0}
           onClick={() => vote(question.id, 1)}
           disabled={question.isDisabledUp}
           active={question.vote > 0}
@@ -132,6 +133,7 @@ function QuestionCard({ question, index }: { question: Question; index: number }
           questionId={question.id}
           delta={-1}
           cost={costOfPress(question.vote, -1)}
+          hasVote={question.vote !== 0}
           onClick={() => vote(question.id, -1)}
           disabled={question.isDisabledDown}
           active={question.vote < 0}
@@ -225,6 +227,7 @@ function VoteButton({
   questionId,
   delta,
   cost,
+  hasVote,
   onClick,
   disabled,
   active,
@@ -235,6 +238,8 @@ function VoteButton({
   questionId: string | number
   delta: number
   cost: number
+  /** Whether the question has been voted on at all. */
+  hasVote: boolean
   onClick: () => void
   disabled?: boolean
   active: boolean
@@ -244,10 +249,20 @@ function VoteButton({
   const { theme } = useTheme()
   const { previewVote, clearPreview } = useQuadraticVote()
   const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
 
   const background = active ? activeColor : hovered && !disabled ? theme.border : 'transparent'
   const spends = cost > 0
   const priceLabel = cost === 0 ? '—' : `${spends ? '−' : '+'}${Math.abs(cost)}`
+
+  /**
+   * Untouched, every question prices both buttons at one credit, so a column of
+   * identical −1s says nothing and reads as clutter. The number earns its place
+   * once a vote makes the two directions cost different amounts — and until
+   * then it is still a hover or a focus away, which is also when the pool
+   * highlights the credits it would move.
+   */
+  const showPrice = hasVote || hovered || focused
 
   const show = () => previewVote(questionId, delta)
   const hide = () => clearPreview()
@@ -271,8 +286,14 @@ function VoteButton({
           setHovered(false)
           hide()
         }}
-        onFocus={show}
-        onBlur={hide}
+        onFocus={() => {
+          setFocused(true)
+          show()
+        }}
+        onBlur={() => {
+          setFocused(false)
+          hide()
+        }}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -297,6 +318,10 @@ function VoteButton({
           fontSize: 11,
           fontVariantNumeric: 'tabular-nums',
           color: disabled ? theme.border : spends ? theme.textMuted : theme.diamondPositive,
+          // Held in place rather than unmounted, so revealing it on hover does
+          // not shunt the row it sits in.
+          opacity: showPrice ? 1 : 0,
+          transition: 'opacity 140ms ease',
         }}
       >
         {priceLabel}
