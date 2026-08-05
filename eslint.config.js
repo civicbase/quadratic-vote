@@ -13,6 +13,8 @@ export default [
       'storybook-static',
       '.tmp-pack',
       'node_modules',
+      // Standalone CRA export for CodeSandbox — not library source.
+      'sandbox-demo/**',
       '*.config.js',
       '*.config.ts',
       '.eslintrc.*',
