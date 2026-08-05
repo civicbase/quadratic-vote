@@ -383,8 +383,9 @@ Tests use Vitest and React Testing Library.
 
 ## Examples
 
-- [Live demo on CodeSandbox](https://codesandbox.io/s/quadratic-vote-nyk9nx)
-- The `/demo` directory, for a complete implementation
+- [Live demo on CodeSandbox](https://codesandbox.io/p/sandbox/rxczdc)
+- [`/demo`](./demo) — local development demo (`npm run dev`, imports the library from source)
+- [`/sandbox-demo`](./sandbox-demo) — CodeSandbox source (imports `quadratic-vote` from npm)
 
 ## Contributing
 
@@ -396,6 +397,7 @@ MIT © [Civicbase](https://github.com/civicbase)
 
 ## Links
 
+- [Live demo (CodeSandbox)](https://codesandbox.io/p/sandbox/rxczdc)
 - [Storybook](https://main--6a6f23822df3e3c82e19b188.chromatic.com)
 - [NPM package](https://www.npmjs.com/package/quadratic-vote)
 - [GitHub repository](https://github.com/civicbase/quadratic-vote)
