@@ -212,7 +212,9 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
   const pendingIn = useRef(new Map<number, number>())
 
   const budget = useRef({ credits, availableCredits })
-  budget.current = { credits, availableCredits }
+  useEffect(() => {
+    budget.current = { credits, availableCredits }
+  }, [credits, availableCredits])
 
   const config = useRef({
     minRadius,
