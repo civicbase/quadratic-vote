@@ -66,6 +66,11 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ steps.config.outputs.node_version }}
+          # setup-node v5 turns this on by default. It resolves the package
+          # manager from package.json to prime a cache, which fails here because
+          # the next step is what makes that package manager exist. The loop
+          # installs dependencies itself and does not need the cache.
+          package-manager-cache: false
 
       - name: Enable and pin the package manager
         if: steps.open_pr.outputs.found != 'true'
