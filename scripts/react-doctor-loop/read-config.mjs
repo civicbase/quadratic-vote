@@ -33,6 +33,12 @@ export const readConfig = (configPath) => {
   if (config.commitType !== undefined && (typeof config.commitType !== "string" || !/^[a-z]+$/.test(config.commitType))) {
     throw new Error("config.commitType must be a lowercase word when present");
   }
+  // Optional. "frozen" (default) refuses to change dependencies; "resolve"
+  // tolerates a lockfile a frozen install rejects, and the installer restores
+  // the lockfile so nothing leaks into the remediation diff.
+  if (config.installStrategy !== undefined && !["frozen", "resolve"].includes(config.installStrategy)) {
+    throw new Error('config.installStrategy must be "frozen" or "resolve" when present');
+  }
   if (typeof config.reactDoctorVersion !== "string" || config.reactDoctorVersion.length === 0) {
     throw new Error("config.reactDoctorVersion must be a non-empty string");
   }

@@ -2,6 +2,7 @@
   "agent": "cursor",
   "workingDirectory": ".",
   "packageManager": "npm",
+  "installStrategy": "resolve",
   "nodeVersion": "24",
   "reactDoctorVersion": "0.9.6",
   "commitType": "chore",
