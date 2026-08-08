@@ -1,0 +1,39 @@
+{
+  "agent": "cursor",
+  "workingDirectory": ".",
+  "packageManager": "npm",
+  "nodeVersion": "24",
+  "reactDoctorVersion": "0.9.6",
+  "commitType": "chore",
+  "formatScript": "format",
+  "verificationScripts": [
+    "format:check",
+    "lint",
+    "type-check",
+    "test:run",
+    "build"
+  ],
+  "skipMissingVerificationScripts": false,
+  "maxChangedFiles": 8,
+  "maxChangedLines": 400,
+  "selection": {
+    "severities": [
+      "error",
+      "warning"
+    ],
+    "categoryPriority": [
+      "Security",
+      "Bugs",
+      "Accessibility",
+      "Performance",
+      "Maintainability"
+    ],
+    "includeCategories": [],
+    "excludeCategories": [],
+    "includeRules": [],
+    "excludeRules": [
+      "plugin-update-trust-risk",
+      "no-vulnerable-react-server-components"
+    ]
+  }
+}

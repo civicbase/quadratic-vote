@@ -106,7 +106,10 @@ export function normalizeColor(value: string | null | undefined) {
 
   const rgb = /^rgba?\(([^)]+)\)$/i.exec(text)
   if (rgb) {
-    const [r, g, b] = rgb[1].split(/[,\s/]+/).filter(Boolean).map(Number)
+    const [r, g, b] = rgb[1]
+      .split(/[,\s/]+/)
+      .filter(Boolean)
+      .map(Number)
     return `rgb(${r}, ${g}, ${b})`
   }
 

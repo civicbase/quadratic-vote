@@ -1,0 +1,186 @@
+name: React Doctor remediation loop
+
+on:
+  # Merging a remediation pull request is the only automatic trigger. Every
+  # closed pull request starts a run, but the job guard below drops all of them
+  # except merged remediation branches before any work or spend happens, so an
+  # ordinary merge to the default branch never costs a provider call.
+  pull_request:
+    types:
+      - closed
+  workflow_dispatch:
+
+concurrency:
+  group: react-doctor-remediation-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  BASE_BRANCH: main
+  LOOP_CONFIG: .github/react-doctor-loop/config.json
+  LOOP_STATE_DIRECTORY: .react-doctor-loop
+
+jobs:
+  remediate-one-issue:
+    # A manual dispatch starts the chain. After that, only a remediation pull
+    # request that was actually merged continues it: a closed-without-merge pull
+    # request stops the loop, and the same-repository check keeps a fork from
+    # continuing it by naming a branch with the remediation prefix.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'react-doctor/remediation-'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      diagnostic_found: ${{ steps.diagnostic.outputs.found }}
+      base_sha: ${{ steps.base.outputs.sha }}
+
+    steps:
+      - name: Check out the base branch without stored credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Read and validate loop configuration
+        id: config
+        run: node scripts/react-doctor-loop/read-config.mjs "$LOOP_CONFIG"
+
+      - name: Record the checked-out base commit
+        id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Stop while a remediation pull request is open
+        id: open_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/react-doctor-loop/check-open-pr.sh
+
+      - name: Set up Node.js
+        if: steps.open_pr.outputs.found != 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ steps.config.outputs.node_version }}
+
+      - name: Enable and pin the package manager
+        if: steps.open_pr.outputs.found != 'true'
+        run: scripts/react-doctor-loop/enable-package-manager.sh "$LOOP_CONFIG"
+
+      - name: Install project dependencies
+        if: steps.open_pr.outputs.found != 'true'
+        run: scripts/react-doctor-loop/install-dependencies.sh "$LOOP_CONFIG"
+
+      - name: Scan and select exactly one diagnostic
+        if: steps.open_pr.outputs.found != 'true'
+        id: diagnostic
+        run: scripts/react-doctor-loop/scan-and-select.sh "$LOOP_CONFIG" "$LOOP_STATE_DIRECTORY"
+
+      - name: Run Codex
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true' && steps.config.outputs.agent == 'codex'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          prompt-file: .github/react-doctor-loop/remediation-prompt.md
+
+      # claude-code-action@v1 takes prompt text, not a path, so the shared prompt
+      # file stays the single source of truth and is loaded here.
+      - name: Load the remediation prompt for Claude
+        id: claude_prompt
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true' && steps.config.outputs.agent == 'claude'
+        run: |
+          {
+            echo "text<<REMEDIATION_PROMPT_EOF"
+            cat .github/react-doctor-loop/remediation-prompt.md
+            echo "REMEDIATION_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude Code
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true' && steps.config.outputs.agent == 'claude'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: ${{ steps.claude_prompt.outputs.text }}
+          claude_args: >-
+            --max-turns 20
+            --allowedTools Read,Glob,Grep,Edit,Write,Bash(git diff:*),Bash(git status:*)
+
+      - name: Install the Cursor CLI
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true' && steps.config.outputs.agent == 'cursor'
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run Cursor
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true' && steps.config.outputs.agent == 'cursor'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: scripts/react-doctor-loop/run-cursor.sh "$LOOP_CONFIG" .github/react-doctor-loop/remediation-prompt.md
+
+      - name: Enforce change scope and size
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true'
+        env:
+          EXPECTED_BEFORE_SHA: ${{ steps.diagnostic.outputs.before_sha }}
+          EXPECTED_SELECTED_SHA: ${{ steps.diagnostic.outputs.selected_sha }}
+        run: scripts/react-doctor-loop/check-diff.sh "$LOOP_CONFIG"
+
+      - name: Run project and React Doctor verification
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true'
+        run: scripts/react-doctor-loop/verify.sh "$LOOP_CONFIG" "$LOOP_STATE_DIRECTORY"
+
+      - name: Recheck the diff after verification
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true'
+        env:
+          EXPECTED_BEFORE_SHA: ${{ steps.diagnostic.outputs.before_sha }}
+          EXPECTED_SELECTED_SHA: ${{ steps.diagnostic.outputs.selected_sha }}
+        run: scripts/react-doctor-loop/check-diff.sh "$LOOP_CONFIG"
+
+      - name: Package the verified patch
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true'
+        run: scripts/react-doctor-loop/package-patch.sh "$LOOP_STATE_DIRECTORY" "$RUNNER_TEMP/react-doctor-remediation"
+
+      - name: Upload the verified patch
+        if: steps.open_pr.outputs.found != 'true' && steps.diagnostic.outputs.found == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: react-doctor-remediation-${{ github.run_id }}
+          path: ${{ runner.temp }}/react-doctor-remediation
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-pull-request:
+    needs: remediate-one-issue
+    if: needs.remediate-one-issue.outputs.diagnostic_found == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Check out the exact verified base without stored credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.remediate-one-issue.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download the verified patch
+        uses: actions/download-artifact@v7
+        with:
+          name: react-doctor-remediation-${{ github.run_id }}
+          path: ${{ runner.temp }}/react-doctor-remediation
+
+      - name: Apply the verified patch
+        run: git apply --index "$RUNNER_TEMP/react-doctor-remediation/remediation.patch"
+
+      - name: Create a small draft pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/react-doctor-loop/create-pr.sh "$LOOP_CONFIG" "$RUNNER_TEMP/react-doctor-remediation" "$BASE_BRANCH"

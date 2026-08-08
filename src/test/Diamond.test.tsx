@@ -270,9 +270,7 @@ describe('Diamond Component', () => {
     const circles = container.querySelectorAll('circle')
 
     circles.forEach((circle) => {
-      transition = window
-        .getComputedStyle(circle)
-        .getPropertyValue('transition')
+      transition = window.getComputedStyle(circle).getPropertyValue('transition')
       expect(transitionExpect).equal(transition)
     })
   })

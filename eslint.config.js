@@ -15,6 +15,10 @@ export default [
       'node_modules',
       // Standalone CRA export for CodeSandbox — not library source.
       'sandbox-demo/**',
+      // Vendored from the React Doctor remediation-loop template. Node scripts,
+      // not library source, and the loop forbids editing them, so a lint
+      // complaint here could never be fixed from inside the loop.
+      'scripts/react-doctor-loop/**',
       '*.config.js',
       '*.config.ts',
       '.eslintrc.*',

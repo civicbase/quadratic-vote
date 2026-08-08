@@ -32,9 +32,7 @@ describe('<QuadraticVoteProvider/>', () => {
 
     expect(result.current.credits).toBe(CREDITS)
     expect(result.current.availableCredits).toBe(CREDITS)
-    expect(result.current.questions).toMatchObject(
-      questions.map(({ id, vote }) => ({ id, vote })),
-    )
+    expect(result.current.questions).toMatchObject(questions.map(({ id, vote }) => ({ id, vote })))
   })
 
   it('reports affordability before the first vote is cast', () => {
