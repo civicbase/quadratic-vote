@@ -22,4 +22,5 @@ Requirements:
 - Do not modify `.github/workflows/`, `.github/react-doctor-loop/`, `scripts/react-doctor-loop/`, `AGENTS.md`, or `CLAUDE.md`.
 - Do not commit, push, create or modify pull requests, post comments, or use GitHub mutation tools.
 - Do not access secrets or print environment variables.
+- Before finishing, if you can run commands, run the project's lint and type checks over the files you changed and fix anything your own edit introduced. A remediation that trades the target diagnostic for a new lint error is rejected outright, and the controller cannot tell you why in time to matter.
 - Finish after editing the working tree. The controller will run verification and create the pull request.

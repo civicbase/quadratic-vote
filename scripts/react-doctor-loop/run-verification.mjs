@@ -6,6 +6,35 @@ import { readConfig } from "./read-config.mjs";
 import { detectPackageManager } from "./detect-package-manager.mjs";
 
 const config = readConfig(process.argv[2]);
+const selectedPath = process.argv[3];
+
+// A verification failure is reported by the underlying tool, which knows
+// nothing about the loop. Without this, the log ends on a raw lint or test
+// error with no indication of which diagnostic was being fixed, or that the
+// same target will be chosen again on the next run.
+const explainFailure = (scriptName) => {
+  if (!selectedPath) return;
+  let selected;
+  try {
+    selected = JSON.parse(readFileSync(selectedPath, "utf8"));
+  } catch {
+    return;
+  }
+  console.error(
+    [
+      "",
+      `The "${scriptName}" script failed after the agent edited the repository.`,
+      `The target was ${selected.plugin}/${selected.rule} at ${selected.repositoryPath ?? selected.filePath}.`,
+      "",
+      "Nothing is published and the repository is unchanged. Selection is",
+      "deterministic, so the next run picks this same target: if it fails the",
+      "same way again, fix it by hand or skip it with",
+      "",
+      `  "selection": { "excludeRules": ["${selected.rule}"] }`,
+      "",
+    ].join("\n"),
+  );
+};
 const packageJsonPath = path.join(config.workingDirectory, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 const packageManager = detectPackageManager(config.packageManager, config.workingDirectory);
@@ -40,6 +69,7 @@ for (const scriptName of config.verificationScripts) {
   }
   console.log(`Running ${packageManager} script: ${scriptName}`);
   if (!runScript(scriptName)) {
+    explainFailure(scriptName);
     throw new Error(`Verification script failed: ${scriptName}`);
   }
 }
