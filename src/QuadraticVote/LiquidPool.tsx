@@ -227,7 +227,19 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
     centre,
     dropletCount,
   })
-  config.current = {
+  useEffect(() => {
+    config.current = {
+      minRadius,
+      maxRadius,
+      spreadPx,
+      wobble,
+      driftSeconds,
+      settleMs,
+      viscosity,
+      centre,
+      dropletCount,
+    }
+  }, [
     minRadius,
     maxRadius,
     spreadPx,
@@ -237,7 +249,7 @@ const LiquidPool: React.FC<LiquidPoolProps> = ({
     viscosity,
     centre,
     dropletCount,
-  }
+  ])
 
   /**
    * Which part of the liquid each credit flies to and from.
